@@ -24,11 +24,14 @@ type budgetResponse struct {
 // Create a Budget
 func CreateBudget(c *gin.Context) {
 	res := budget{}
-	parseBudget(c, &res)
+	err := parseBudget(c, &res)
+	if err != nil {
+		return
+	}
 
-	user, err := c.Get("USER")
+	user, errrr := c.Get("USER")
 
-	if !err {
+	if !errrr {
 		panic("User object not found")
 	}
 
@@ -40,7 +43,7 @@ func CreateBudget(c *gin.Context) {
 	}
 
 	connection := GetConnection()
-	defer connection.Commit()
+
 	query := "INSERT INTO budgets (owner_id, budget_name) VALUES ($1, $2)"
 
 	stmt, errr := connection.Prepare(query)
@@ -49,15 +52,13 @@ func CreateBudget(c *gin.Context) {
 		panic("Something went wrong when preparing query to create budget")
 	}
 
-	result, errr := stmt.Exec(userObj.UserID, res.BudgetName)
+	_, errr = stmt.Exec(userObj.UserID, res.BudgetName)
 
 	if errr != nil {
-		fmt.Println(userObj.UserID)
-		fmt.Println(res.BudgetName)
 		panic(errr)
 	}
 
-	fmt.Println(result)
+	connection.Commit()
 
 	c.JSON(201, gin.H{
 		"message": "Successfully Created Budget",
@@ -120,7 +121,7 @@ func GetBudgets(c *gin.Context) {
 // getBudget ...
 // Gets budget from db based
 // on given params
-func getBudget(UserID uuid.UUID, budgetName string) budgetResponse {
+func getBudget(userID uuid.UUID, budgetName string) budgetResponse {
 	connection := GetConnection()
 	defer connection.Commit()
 
@@ -132,9 +133,9 @@ func getBudget(UserID uuid.UUID, budgetName string) budgetResponse {
 		panic("Something went wrong when preparing query to get budget")
 	}
 
-	rows, err := stmt.Query(UserID, budgetName)
+	rows, err := stmt.Query(userID, budgetName)
 
-	if err != nil {
+	if err != nil || !rows.Next() {
 		fmt.Println(err.Error())
 		return budgetResponse{}
 	}
@@ -147,8 +148,8 @@ func getBudget(UserID uuid.UUID, budgetName string) budgetResponse {
 	rows.Scan(&budget_id, &owner_id, &budget_name)
 
 	res.BudgetID = budget_id
-	res.OwnerID = owner_id
-	res.BudgetName = budget_name
+	res.OwnerID = userID
+	res.BudgetName = budgetName
 
 	return res
 }
