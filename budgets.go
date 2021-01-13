@@ -120,7 +120,7 @@ func GetBudgets(c *gin.Context) {
 // getBudget ...
 // Gets budget from db based
 // on given params
-func getBudget(UserID uuid.UUID, budgetName string) *budgetResponse {
+func getBudget(UserID uuid.UUID, budgetName string) budgetResponse {
 	connection := GetConnection()
 	defer connection.Commit()
 
@@ -136,14 +136,21 @@ func getBudget(UserID uuid.UUID, budgetName string) *budgetResponse {
 
 	if err != nil {
 		fmt.Println(err.Error())
-		return nil
+		return budgetResponse{}
 	}
 
 	var res budgetResponse
+	var budget_id uuid.UUID
+	var owner_id uuid.UUID
+	var budget_name string
 
-	rows.Scan(res)
+	rows.Scan(&budget_id, &owner_id, &budget_name)
 
-	return &res
+	res.BudgetID = budget_id
+	res.OwnerID = owner_id
+	res.BudgetName = budget_name
+
+	return res
 }
 
 // doesBudgetExist ...
