@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,10 +10,13 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/go-pg/pg"
+	_ "github.com/lib/pq"
 	"github.com/plaid/plaid-go/plaid"
 	swaggerFiles "github.com/swaggo/files"     // swagger embed files
-	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
-	"google.golang.org/api/oauth2/v2"
+	ginSwagger "github.com/swaggo/gin-swagger" // g
+	// swagger embed files
+	// gin-swagger middleware
 )
 
 func init() {
@@ -25,6 +29,20 @@ func init() {
 	if PLAID_ENV == "" {
 		PLAID_ENV = "sandbox"
 	}
+
+	if string(ENCRYPTION_KEY) == "" {
+		ENCRYPTION_KEY = []byte("a very very very very secret key") // 32 bytes
+	}
+
+	if DATABASE_URL == "" {
+		DATABASE_URL = "postgres://fixjakzanvukwk:6f974182090cbbd477d2cc37869c14f0bb685430b358636a27457195cd0c172b@ec2-184-73-249-9.compute-1.amazonaws.com:5432/d21u9s3g6p4143"
+	}
+
+}
+
+type account struct {
+	UserID      string `json:"accountId"`
+	AccessToken string `json:"accessToken"`
 }
 
 // Fill with your Plaid API keys - https://dashboard.plaid.com/account/keys
@@ -34,6 +52,8 @@ var (
 	PLAID_ENV           = "development"
 	PLAID_PRODUCTS      = "auth,transactions"
 	PLAID_COUNTRY_CODES = os.Getenv("PLAID_COUNTRY_CODES")
+	ENCRYPTION_KEY      = []byte(os.Getenv("ENCRYPTION_KEY"))
+	DATABASE_URL        = os.Getenv("DATABASE_URL")
 	// Parameters used for the OAuth redirect Link flow.
 	//
 	// Set PLAID_REDIRECT_URI to 'http://localhost:8000/oauth-response.html'
@@ -84,9 +104,54 @@ func renderError(c *gin.Context, err error) {
 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }
 
+type tokenPayload struct {
+	Token string `json:"public_token"`
+}
+
+type store struct {
+	Token string
+	ID    string
+}
+
+func getAllAccounts(c *gin.Context) {
+	userID, exists := c.Get("USERID")
+
+	if exists {
+		options, err := pg.ParseURL(DATABASE_URL)
+
+		if err != nil {
+			panic(err)
+		}
+
+		db := pg.Connect(options)
+
+		// Select user by primary key.
+		acct := new(account)
+		err = db.Model(acct).Where("account.user_id = ?", userID.(string)).Select()
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": "No accounts found",
+			})
+			return
+		}
+
+		print(acct)
+
+		c.JSON(http.StatusOK, gin.H{
+			"accounts": "sdfs",
+		})
+	}
+}
+
 func getAccessToken(c *gin.Context) {
-	publicToken := c.PostForm("public_token")
-	response, err := client.ExchangePublicToken(publicToken)
+	var json tokenPayload
+	err := c.BindJSON(&json)
+	if err != nil {
+		fmt.Println(err.Error())
+		panic("something went wrong")
+	}
+
+	response, err := client.ExchangePublicToken(json.Token)
 	if err != nil {
 		renderError(c, err)
 		return
@@ -94,14 +159,75 @@ func getAccessToken(c *gin.Context) {
 	accessToken = response.AccessToken
 	itemID = response.ItemID
 
-	fmt.Println("public token: " + publicToken)
+	fmt.Println("public token: " + json.Token)
 	fmt.Println("access token: " + accessToken)
 	fmt.Println("item ID: " + itemID)
+	userID, exists := c.Get("USERID")
+
+	if exists {
+		go updateAccessTokenInDb(accessToken, userID.(string))
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"access_token": accessToken,
 		"item_id":      itemID,
 	})
+
+}
+
+func encodeBase64(b []byte) string {
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func decodeBase64(s string) []byte {
+	data, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+var iv = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 05}
+
+// func Encrypt(text string) string {
+// 	block, err := aes.NewCipher([]byte(ENCRYPTION_KEY))
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	plaintext := []byte(text)
+// 	cfb := cipher.NewCFBEncrypter(block, iv)
+// 	ciphertext := make([]byte, len(plaintext))
+// 	cfb.XORKeyStream(ciphertext, plaintext)
+// 	return encodeBase64(text)
+// }
+
+// func Decrypt(text string) string {
+// 	block, err := aes.NewCipher([]byte(ENCRYPTION_KEY))
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	ciphertext := decodeBase64(text)
+// 	cfb := cipher.NewCFBEncrypter(block, iv)
+// 	plaintext := make([]byte, len(ciphertext))
+// 	cfb.XORKeyStream(plaintext, ciphertext)
+// 	return string(ciphertext)
+// }
+
+func updateAccessTokenInDb(accessToken string, userID string) {
+	options, err := pg.ParseURL(DATABASE_URL)
+
+	if err != nil {
+		panic(err)
+	}
+
+	db := pg.Connect(options)
+
+	defer db.Close()
+
+	if err != nil {
+		print(err.Error())
+		panic(err)
+	}
 }
 
 // This functionality is only relevant for the UK Payment Initiation product.
@@ -285,14 +411,6 @@ func holdings(c *gin.Context) {
 	})
 }
 
-func info(context *gin.Context) {
-	context.JSON(200, map[string]interface{}{
-		"item_id":      itemID,
-		"access_token": accessToken,
-		"products":     strings.Split(PLAID_PRODUCTS, ","),
-	})
-}
-
 func createPublicToken(c *gin.Context) {
 	// Create a one-time use public_token for the Item.
 	// This public_token can be used to initialize Link in update mode for a user
@@ -314,10 +432,6 @@ func createLinkToken(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"link_token": linkToken})
-}
-
-func test(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Test success"})
 }
 
 type httpError struct {
@@ -366,40 +480,12 @@ func respondWithError(c *gin.Context, code int, message interface{}) {
 	c.AbortWithStatusJSON(code, gin.H{"error": message})
 }
 
-func TokenAuthMiddleware() gin.HandlerFunc {
-
-	// We want to make sure the token is set, bail if not
-	// if requiredToken == "" {
-	//   log.Fatal("Please set API_TOKEN environment variable")
-	// }
-
-	return func(c *gin.Context) {
-		token := c.Request.Header.Get("Authorization")
-
-		if token == "" {
-			respondWithError(c, 403, "API token required")
-			return
-		}
-
-		httpClient := &http.Client{}
-		oauth2Service, err := oauth2.New(httpClient)
-		tokenInfoCall := oauth2Service.Tokeninfo()
-		tokenInfoCall.AccessToken(token)
-		tokenInfo, err := tokenInfoCall.Do()
-		if err != nil {
-			fmt.Println(err)
-			respondWithError(c, 401, "Invalid API token")
-			return
-		}
-		fmt.Println(tokenInfo.HTTPStatusCode)
-
-		c.Next()
-	}
-}
 func main() {
 	if APP_PORT == "" {
 		APP_PORT = "8000"
 	}
+
+	InitializeDatabase()
 
 	r := gin.Default()
 
@@ -418,18 +504,22 @@ func main() {
 	r.Static("/static", "../static")
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := r.Group("/api")
+
+	budget := api.Group("/budget")
+
+	user := api.Group("/user")
+
+	role := api.Group("/role")
+
 	api.Use(TokenAuthMiddleware())
-	api.POST("/info", info)
+	budget.Use(TokenAuthMiddleware())
+	// user.Use(TokenAuthMiddleware())
+	role.Use(TokenAuthMiddleware())
+
 	api.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
-	// For OAuth flows, the process looks as follows.
-	// 1. Create a link token with the redirectURI (as white listed at https://dashboard.plaid.com/team).
-	// 2. Once the flow succeeds, Plaid Link will redirect to redirectURI with
-	// additional parameters (as required by OAuth standards and Plaid).
-	// 3. Re-initialize with the link token (from step 1) and the full received redirect URI
-	// from step 2.
 	api.GET("/oauth-response.html", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "oauth-response.html", gin.H{})
 	})
@@ -437,6 +527,7 @@ func main() {
 	api.POST("/set_access_token", getAccessToken)
 	api.POST("/create_link_token_for_payment", createLinkTokenForPayment)
 	api.GET("/auth", auth)
+	api.GET("/all-accounts", getAllAccounts)
 	api.GET("/accounts", accounts)
 	api.GET("/balance", balance)
 	api.GET("/item", item)
@@ -451,17 +542,19 @@ func main() {
 	api.GET("/holdings", holdings)
 	api.GET("/assets", assets)
 	api.GET("/categories", getCategories)
-	api.GET("/test", test)
+
+	// BUDGETS
+	budget.GET("/get-all", GetBudgets)
+	budget.POST("/create", CreateBudget)
+
+	// USERS
+	user.POST("/register", RegisterUser)
+
+	// ROLES
+	role.POST("/add-user-role-to-budget", AddRole)
 
 	err := r.Run(":" + APP_PORT)
 	if err != nil {
 		panic("unable to start server")
 	}
 }
-
-// CHASE ACCESS TOKEN
-
-// {
-// 	"access_token": "access-development-1e936067-accd-4af9-a21c-73fcf2b8f1fd",
-// 	"item_id": "LvpqB74ad9tP15g1JPDnubVj5ONx4BFZBNZJo"
-// }
