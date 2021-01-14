@@ -45,9 +45,45 @@ func RegisterUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": res})
 }
 
+// GetUserProfile ...
+// Gets user profile from db
+func GetUserProfile(c *gin.Context) {
+	userID, exists := c.Get("USERID")
+
+	if !exists {
+		panic("USERID not present when trying to get user profile")
+	}
+
+	user, err := GetUser(userID.(string))
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "Unable to find user profile registration",
+			"error":   true,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Successfully retrieved user profile",
+		"data":    user,
+	})
+}
+
+// CustomError ...
+type CustomError struct {
+	Message string
+}
+
+// Error ...
+// Return error Message
+func (err CustomError) Error() string {
+	return err.Message
+}
+
 // GetUser ...
 // Gets user object from db
-func GetUser(googleID string) User {
+func GetUser(googleID string) (*User, error) {
 	tx := GetConnection()
 	defer tx.Commit()
 	fmt.Println("Querying database for " + googleID)
@@ -57,7 +93,10 @@ func GetUser(googleID string) User {
 	res, err := stmt.Query(googleID)
 
 	if err != nil || !res.Next() {
-		panic("USER NOT FOUND IN DB")
+		fmt.Println("USER NOT FOUND IN DB")
+		return nil, CustomError{
+			Message: "User does not exist",
+		}
 	}
 
 	var userResult User
@@ -80,5 +119,5 @@ func GetUser(googleID string) User {
 	userResult.GoogleID = google_id
 	userResult.RegistrationDate = registration_date
 
-	return userResult
+	return &userResult, nil
 }

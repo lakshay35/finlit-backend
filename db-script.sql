@@ -27,17 +27,11 @@ CREATE TABLE IF NOT EXISTS audit_types (
 CREATE TABLE IF NOT EXISTS external_accounts (
   external_account_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   institutional_id VARCHAR (255) NOT NULL,
-  access_token VARCHAR (255) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS external_account_integrations (
-  external_account_integration_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL,
-  external_account_id UUID NOT NULL,
+  access_token VARCHAR (255) NOT NULL,
+  account_name VARCHAR NOT NULL DEFAULT '',
   FOREIGN KEY (user_id)
-      REFERENCES users (user_id),
-  FOREIGN KEY (external_account_id)
-      REFERENCES external_accounts (external_account_id)
+      REFERENCES users (user_id)
 );
 
 CREATE TABLE IF NOT EXISTS budgets (

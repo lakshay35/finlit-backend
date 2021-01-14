@@ -12,14 +12,18 @@ import (
 
 type addRoleRequest struct {
 	Role     string    `json:"role"`
+	userID   uuid.UUID `json:"userID"`
 	BudgetID uuid.UUID `json:"budgetId"`
 }
 
-// AddRole ...
+// AddUserRoleToBudget ...
 // Adds role to user
-func AddRole(c *gin.Context) {
+func AddUserRoleToBudget(c *gin.Context) {
 
-	userID, found := c.Get("USERID")
+	user, found := c.Get("USER")
+
+	userObj := user.(User)
+
 	res := addRoleRequest{}
 	jsonData, err := ioutil.ReadAll(c.Request.Body)
 
@@ -36,7 +40,7 @@ func AddRole(c *gin.Context) {
 	}
 
 	// Only budget owner can add users to budget
-	if !doesUserOwnBudget(userID.(string), res.BudgetID) {
+	if !doesUserOwnBudget(userObj.UserID, res.BudgetID) {
 		ThrowError(c, 401, "Not enough permissions to add users to")
 	}
 
@@ -47,7 +51,7 @@ func AddRole(c *gin.Context) {
 
 	stmt := PrepareStatement(connection, query)
 
-	_, err = stmt.Exec(userID.(string), getRole(res.Role), res.BudgetID)
+	_, err = stmt.Exec(res.userID, getRole(res.Role), res.BudgetID)
 
 	if err != nil {
 		ThrowError(c, 400, "Unknw")
@@ -57,7 +61,7 @@ func AddRole(c *gin.Context) {
 // doesUserOwnBudget
 // Determine if given userID is
 // the owner of the given budgetID
-func doesUserOwnBudget(userID string, budgetID uuid.UUID) bool {
+func doesUserOwnBudget(userID uuid.UUID, budgetID uuid.UUID) bool {
 	connection := GetConnection()
 	defer connection.Commit()
 

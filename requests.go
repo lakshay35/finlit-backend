@@ -10,7 +10,7 @@ import (
 // ThrowError ...
 // Sets error context
 func ThrowError(c *gin.Context, code int, reason string) {
-	c.JSON(code, gin.H{
+	c.AbortWithStatusJSON(code, gin.H{
 		"error":  true,
 		"reason": reason,
 	})
@@ -34,4 +34,16 @@ func ParseBody(c *gin.Context, res *interface{}) error {
 	}
 
 	return nil
+}
+
+// GetUserFromContext ...
+// Returns user object form context
+func GetUserFromContext(c *gin.Context) User {
+	user, exists := c.Get("USER")
+
+	if !exists {
+		panic("USER DOES NOT EXIST IN CONTEXT")
+	}
+
+	return user.(User)
 }
