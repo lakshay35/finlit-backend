@@ -143,7 +143,7 @@ func main() {
 	// ACCOUNTS
 	account.GET("/get", GetAllAccounts)
 	account.POST("/get-account-details", GetAccountInformation)
-	account.POST("/create_link_token", CreateLinkToken)
+	account.POST("/create-link-token", CreateLinkToken)
 	account.POST("/transactions", GetTransactions)
 	account.POST("/live-balances", GetCurrentBalances)
 
