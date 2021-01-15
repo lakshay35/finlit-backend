@@ -1,10 +1,11 @@
-package main
+package requests
 
 import (
 	"encoding/json"
 	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lakshay35/finlit-backend/models"
 )
 
 // ThrowError ...
@@ -38,12 +39,12 @@ func ParseBody(c *gin.Context, res *interface{}) error {
 
 // GetUserFromContext ...
 // Returns user object form context
-func GetUserFromContext(c *gin.Context) User {
+func GetUserFromContext(c *gin.Context) models.User {
 	user, exists := c.Get("USER")
 
 	if !exists {
 		panic("USER DOES NOT EXIST IN CONTEXT")
 	}
 
-	return user.(User)
+	return user.(models.User)
 }

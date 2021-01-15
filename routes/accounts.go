@@ -1,4 +1,4 @@
-package main
+package routes
 
 import (
 	"fmt"
@@ -7,6 +7,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lakshay35/finlit-backend/models"
+	"github.com/lakshay35/finlit-backend/services"
+	"github.com/lakshay35/finlit-backend/utils/database"
+	"github.com/lakshay35/finlit-backend/utils/requests"
 	"github.com/plaid/plaid-go/plaid"
 	uuid "github.com/satori/go.uuid"
 )
@@ -19,11 +23,11 @@ func GetAccountInformation(c *gin.Context) {
 	err := c.BindJSON(&json)
 
 	if err != nil {
-		ThrowError(c, http.StatusBadRequest, err.Error())
+		requests.ThrowError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response, err := PlaidClient.GetAccounts(GetAccountAccessToken(json.ExternalAccountID))
+	response, err := services.PlaidClient.GetAccounts(GetAccountAccessToken(json.ExternalAccountID))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
@@ -41,7 +45,7 @@ func GetAccountInformation(c *gin.Context) {
 
 // GetCurrentBalances ...
 func GetCurrentBalances(c *gin.Context) {
-	response, err := PlaidClient.GetBalances("accessToken")
+	response, err := services.PlaidClient.GetBalances("accessToken")
 	if err != nil {
 		panic(err)
 		return
@@ -58,7 +62,7 @@ func GetTransactions(c *gin.Context) {
 	endDate := time.Now().Local().Format("2006-01-02")
 	startDate := time.Now().Local().Add(-30 * 24 * time.Hour).Format("2006-01-02")
 
-	response, err := PlaidClient.GetTransactions("accessToken", startDate, endDate)
+	response, err := services.PlaidClient.GetTransactions("accessToken", startDate, endDate)
 
 	if err != nil {
 		panic(err)
@@ -110,9 +114,9 @@ func (httpError *httpError) Error() string {
 func linkTokenCreate(
 	paymentInitiation *plaid.PaymentInitiation,
 ) (string, *httpError) {
-	countryCodes := strings.Split(PLAID_COUNTRY_CODES, ",")
-	products := strings.Split(PLAID_PRODUCTS, ",")
-	redirectURI := PLAID_REDIRECT_URI
+	countryCodes := strings.Split(services.PLAID_COUNTRY_CODES, ",")
+	products := strings.Split(services.PLAID_PRODUCTS, ",")
+	redirectURI := services.PLAID_REDIRECT_URI
 	configs := plaid.LinkTokenConfigs{
 		User: &plaid.LinkTokenUser{
 			// This should correspond to a unique id for the current user.
@@ -125,7 +129,7 @@ func linkTokenCreate(
 		RedirectUri:       redirectURI,
 		PaymentInitiation: paymentInitiation,
 	}
-	resp, err := PlaidClient.CreateLinkToken(configs)
+	resp, err := services.PlaidClient.CreateLinkToken(configs)
 	if err != nil {
 		return "", &httpError{
 			errorCode: http.StatusBadRequest,
@@ -139,7 +143,7 @@ func linkTokenCreate(
 // Get access token for an account based
 // on accountID
 func GetAccountAccessToken(accountID uuid.UUID) string {
-	connection := GetConnection()
+	connection := database.GetConnection()
 
 	query := "SELECT * FROM external_accounts WHERE external_account_id = $1"
 
@@ -165,7 +169,7 @@ type Account struct {
 // GetAllAccounts ...
 // Gets all accounts a user has
 func GetAllAccounts(c *gin.Context) {
-	connection := GetConnection()
+	connection := database.GetConnection()
 
 	query := "SELECT * FROM external_accounts WHERE user_id = $1"
 
@@ -176,12 +180,12 @@ func GetAllAccounts(c *gin.Context) {
 		panic("Error preparing statement to get user bank accounts")
 	}
 
-	user := GetUserFromContext(c)
+	user := requests.GetUserFromContext(c)
 
 	rows, err := stmt.Query(user.UserID)
 
 	if err != nil || !rows.NextResultSet() {
-		ThrowError(c, http.StatusNotFound, "User has no account registrations")
+		requests.ThrowError(c, http.StatusNotFound, "User has no account registrations")
 		return
 	}
 
@@ -226,9 +230,9 @@ func RegisterAccessToken(c *gin.Context) {
 		panic("Unable to parse tokenpayload '/account/register'")
 	}
 
-	response, err := PlaidClient.ExchangePublicToken(json.Token)
+	response, err := services.PlaidClient.ExchangePublicToken(json.Token)
 	if err != nil {
-		ThrowError(c, http.StatusBadRequest, err.Error())
+		requests.ThrowError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -240,9 +244,9 @@ func RegisterAccessToken(c *gin.Context) {
 		panic("USER NOT FOUND IN CONTEXT")
 	}
 
-	userObj := user.(User)
+	userObj := user.(models.User)
 
-	connection := GetConnection()
+	connection := database.GetConnection()
 
 	query := "INSERT INTO external_accounts (institutional_id, access_token, account_name, user_id) ($1, $2, $3, $4)"
 
@@ -273,7 +277,7 @@ func RegisterAccessToken(c *gin.Context) {
 // gets account tied to access token
 // from Plaid APIS
 func getAccountsForAccessToken(accessToken string) []plaid.Account {
-	accounts, err := PlaidClient.GetAccounts(accessToken)
+	accounts, err := services.PlaidClient.GetAccounts(accessToken)
 
 	if err != nil {
 		panic("Something went wrong while getting accounts from plaid")

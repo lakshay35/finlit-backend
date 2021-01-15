@@ -1,9 +1,0 @@
-info:
-  contact: {}
-paths: {}
-swagger: "2.0"
-Title: "FinLit API"
-Description: "API endpoints to provide service on FinLit"
-Version: "1.0"
-Host: "http://localhost:8080"
-BasePath: "/"

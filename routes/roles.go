@@ -1,4 +1,4 @@
-package main
+package routes
 
 import (
 	"encoding/json"
@@ -7,7 +7,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
+	"github.com/lakshay35/finlit-backend/models"
+	"github.com/lakshay35/finlit-backend/utils/database"
+	"github.com/lakshay35/finlit-backend/utils/requests"
 )
 
 type addRoleRequest struct {
@@ -22,14 +25,14 @@ func AddUserRoleToBudget(c *gin.Context) {
 
 	user, found := c.Get("USER")
 
-	userObj := user.(User)
+	userObj := user.(models.User)
 
 	res := addRoleRequest{}
 	jsonData, err := ioutil.ReadAll(c.Request.Body)
 
 	if err != nil {
 		// TODO: Create a request body interceptor annotation
-		ThrowError(c, 400, "malformed body struct")
+		requests.ThrowError(c, 400, "malformed body struct")
 		return
 	}
 
@@ -41,20 +44,20 @@ func AddUserRoleToBudget(c *gin.Context) {
 
 	// Only budget owner can add users to budget
 	if !doesUserOwnBudget(userObj.UserID, res.BudgetID) {
-		ThrowError(c, 401, "Not enough permissions to add users to")
+		requests.ThrowError(c, 401, "Not enough permissions to add users to")
 	}
 
-	connection := GetConnection()
+	connection := database.GetConnection()
 	defer connection.Commit()
 
 	query := "INSERT INTO user_roles (user_id, role_id, budget_id) VALUES ('$1, (select role_id from roles where role_name = $2), $3)"
 
-	stmt := PrepareStatement(connection, query)
+	stmt := database.PrepareStatement(connection, query)
 
 	_, err = stmt.Exec(res.userID, getRole(res.Role), res.BudgetID)
 
 	if err != nil {
-		ThrowError(c, 400, "Unknw")
+		requests.ThrowError(c, 400, "Unknw")
 	}
 }
 
@@ -62,12 +65,12 @@ func AddUserRoleToBudget(c *gin.Context) {
 // Determine if given userID is
 // the owner of the given budgetID
 func doesUserOwnBudget(userID uuid.UUID, budgetID uuid.UUID) bool {
-	connection := GetConnection()
+	connection := database.GetConnection()
 	defer connection.Commit()
 
 	query := "SELECT * FROM budgets WHERE owner = $1 AND budget_id = $2"
 
-	stmt := PrepareStatement(connection, query)
+	stmt := database.PrepareStatement(connection, query)
 
 	rows, err := stmt.Query(userID, budgetID)
 

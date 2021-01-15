@@ -16,8 +16,9 @@ require (
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/go-pg/pg/v10 v10.7.3 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
-	github.com/go-swagger/go-swagger v0.25.0 // indirect
+	github.com/go-swagger/go-swagger v0.25.0
 	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kr/pretty v0.2.1 // indirect

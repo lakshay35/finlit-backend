@@ -1,4 +1,4 @@
-package main
+package routes
 
 import (
 	"encoding/json"
@@ -7,24 +7,17 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
+	"github.com/lakshay35/finlit-backend/models"
+	"github.com/lakshay35/finlit-backend/utils/database"
+	"github.com/lakshay35/finlit-backend/utils/requests"
 )
-
-type User struct {
-	UserID           uuid.UUID `json:"userID,omitempty"`
-	RegistrationDate string    `json:"registrationDate,omitempty`
-	FirstName        string    `json:"firstName"`
-	LastName         string    `json:"lastName"`
-	Email            string    `json:"email"`
-	Phone            string    `json:"phone"`
-	GoogleID         string    `json:"googleID"`
-}
 
 // RegisterUser ...
 // registers user in the database
 func RegisterUser(c *gin.Context) {
 
-	res := User{}
+	res := models.User{}
 	jsonData, err := ioutil.ReadAll(c.Request.Body)
 
 	if err != nil {
@@ -32,13 +25,13 @@ func RegisterUser(c *gin.Context) {
 	}
 
 	json.Unmarshal(jsonData, &res)
-	tx := GetConnection()
+	tx := database.GetConnection()
 	defer tx.Commit()
-	stmt := PrepareStatement(tx, "INSERT INTO users (first_name, last_name, email, phone, google_id) VALUES ($1, $2, $3, $4, $5)")
+	stmt := database.PrepareStatement(tx, "INSERT INTO users (first_name, last_name, email, phone, google_id) VALUES ($1, $2, $3, $4, $5)")
 
 	_, err = stmt.Exec(res.FirstName, res.LastName, res.Email, res.Phone, res.GoogleID)
 	if err != nil {
-		ThrowError(c, http.StatusConflict, "User already exists")
+		requests.ThrowError(c, http.StatusConflict, "User already exists")
 		return
 	}
 
@@ -83,12 +76,12 @@ func (err CustomError) Error() string {
 
 // GetUser ...
 // Gets user object from db
-func GetUser(googleID string) (*User, error) {
-	tx := GetConnection()
+func GetUser(googleID string) (*models.User, error) {
+	tx := database.GetConnection()
 	defer tx.Commit()
 	fmt.Println("Querying database for " + googleID)
 
-	stmt := PrepareStatement(tx, "SELECT * FROM users where google_id = $1")
+	stmt := database.PrepareStatement(tx, "SELECT * FROM users where google_id = $1")
 
 	res, err := stmt.Query(googleID)
 
@@ -99,7 +92,7 @@ func GetUser(googleID string) (*User, error) {
 		}
 	}
 
-	var userResult User
+	var userResult models.User
 
 	var user_id uuid.UUID
 	var first_name string
