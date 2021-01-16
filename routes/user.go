@@ -31,11 +31,15 @@ func RegisterUser(c *gin.Context) {
 
 	_, err = stmt.Exec(res.FirstName, res.LastName, res.Email, res.Phone, res.GoogleID)
 	if err != nil {
+		fmt.Println(err)
 		requests.ThrowError(c, http.StatusConflict, "User already exists")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": res})
+	c.JSON(http.StatusOK, gin.H{
+		"data":    res,
+		"message": "Successfully registered your profile",
+	})
 }
 
 // GetUserProfile ...
