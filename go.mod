@@ -20,6 +20,7 @@ require (
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/handlers v1.5.1 // indirect
+	github.com/joho/godotenv v1.3.0
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect

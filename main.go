@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 
 	"github.com/lakshay35/finlit-backend/middlewares"
 	"github.com/lakshay35/finlit-backend/routes"
@@ -47,10 +49,10 @@ type account struct {
 
 // Fill with your Plaid API keys - https://dashboard.plaid.com/account/keys
 var (
-	PLAID_CLIENT_ID     = "5f25d4dbd6e09e001026c0f6"
-	PLAID_SECRET        = "690750c7b009518b14ffc6386b7fb4"
-	PLAID_ENV           = "development"
-	PLAID_PRODUCTS      = "auth,transactions"
+	PLAID_CLIENT_ID     = os.Getenv("PLAID_CLIENT_ID")
+	PLAID_SECRET        = os.Getenv("PLAID_SECRET")
+	PLAID_ENV           = os.Getenv("PLAID_ENV")
+	PLAID_PRODUCTS      = os.Getenv("PLAID_PRODUCTS")
 	PLAID_COUNTRY_CODES = os.Getenv("PLAID_COUNTRY_CODES")
 	ENCRYPTION_KEY      = []byte(os.Getenv("ENCRYPTION_KEY"))
 	DATABASE_URL        = os.Getenv("DATABASE_URL")
@@ -61,7 +63,6 @@ var (
 	// that the bank website should redirect to. You will need to configure
 	// this redirect URI for your client ID through the Plaid developer dashboard
 	// at https://dashboard.plaid.com/team.
-	PLAID_REDIRECT_URI = "https://localhost:3000"
 
 	// Use 'sandbox' to test with fake credentials in Plaid's Sandbox environment
 	// Use `development` to test with real credentials while developing
@@ -123,8 +124,10 @@ var iv = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 05}
 
 // @termsOfService http://swagger.io/terms/
 func main() {
-	if APP_PORT == "" {
-		APP_PORT = "8000"
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Print("Error loading .env file")
 	}
 
 	database.InitializeDatabase()
@@ -185,7 +188,7 @@ func main() {
 
 	// r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	err := r.Run(":" + APP_PORT)
+	err = r.Run(":" + APP_PORT)
 	if err != nil {
 		panic("unable to start server")
 	}
