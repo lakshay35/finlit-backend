@@ -153,7 +153,7 @@ func main() {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	err := r.Run(":" + services.GetEnvVariable("APP_PORT"))
+	err := r.Run(":" + services.GetEnvVariable("PORT"))
 	if err != nil {
 		panic("unable to start server")
 	}
