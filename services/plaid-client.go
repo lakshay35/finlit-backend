@@ -3,16 +3,17 @@ package services
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/plaid/plaid-go/plaid"
 )
 
 var (
-	PLAID_CLIENT_ID     = "5f25d4dbd6e09e001026c0f6"
-	PLAID_SECRET        = "690750c7b009518b14ffc6386b7fb4"
-	PLAID_ENV           = "development"
-	PLAID_COUNTRY_CODES = "US"
-	PLAID_PRODUCTS      = "transactions"
+	PLAID_CLIENT_ID     = os.Getenv("PLAID_CLIENT_ID")
+	PLAID_SECRET        = os.Getenv("PLAID_SECRET")
+	PLAID_ENV           = os.Getenv("PLAID_ENV")
+	PLAID_PRODUCTS      = os.Getenv("PLAID_PRODUCTS")
+	PLAID_COUNTRY_CODES = os.Getenv("PLAID_COUNTRY_CODES")
 	PLAID_REDIRECT_URI  = ""
 	environments        = map[string]plaid.Environment{
 		"sandbox":     plaid.Sandbox,
