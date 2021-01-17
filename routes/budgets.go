@@ -100,7 +100,7 @@ func GetBudgets(c *gin.Context) {
 		return
 	}
 
-	var result []budgetResponse
+	var result []budgetResponse = make([]budgetResponse, 0)
 
 	var budget_name string
 	var budget_id uuid.UUID

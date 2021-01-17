@@ -208,7 +208,7 @@ func GetAllAccounts(c *gin.Context) {
 		return
 	}
 
-	var accounts []Account
+	var accounts []Account = make([]Account, 0)
 
 	for rows.Next() {
 		var external_account_id string

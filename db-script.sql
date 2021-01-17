@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS external_accounts (
   institutional_id VARCHAR (255) NOT NULL,
   user_id UUID NOT NULL,
   access_token VARCHAR (255) NOT NULL,
-  account_name VARCHAR NOT NULL DEFAULT '',
+  account_name VARCHAR NOT NULL,
   FOREIGN KEY (user_id)
       REFERENCES users (user_id)
 );
@@ -37,14 +37,6 @@ CREATE TABLE IF NOT EXISTS external_accounts (
 CREATE TABLE IF NOT EXISTS budgets (
   budget_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   budget_name VARCHAR (255) NOT NULL,
-  owner_id UUID NOT NULL,
-	FOREIGN KEY (owner_id)
-      REFERENCES users (user_id)
-);
-
-CREATE TABLE IF NOT EXISTS budgets_new (
-  budget_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  budget_name VARCHAR (255) NOT NULL DEFAULT '',
   owner_id UUID NOT NULL,
 	FOREIGN KEY (owner_id)
       REFERENCES users (user_id)
