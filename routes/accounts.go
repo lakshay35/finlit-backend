@@ -27,19 +27,25 @@ func GetAccountInformation(c *gin.Context) {
 		return
 	}
 
-	response, err := services.PlaidClient.GetAccounts(GetAccountAccessToken(json.ExternalAccountID))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-			"error":   true,
-		})
+	institutional_id, access_token := getExternalAccount(json.ExternalAccountID)
 
-		return
+	response, err := services.PlaidClient.GetAccounts(access_token)
+
+	if err != nil {
+		panic(err)
+	}
+
+	var account plaid.Account
+
+	for _, act := range response.Accounts {
+		if strings.EqualFold(act.AccountID, institutional_id) {
+			account = act
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Successfully retrieved accounts",
-		"data":    response.Accounts,
+		"data":    account,
 	})
 }
 
@@ -58,20 +64,32 @@ func GetCurrentBalances(c *gin.Context) {
 
 // GetTransactions ...
 func GetTransactions(c *gin.Context) {
+	var json Account
+	c.BindJSON(&json)
+
 	// pull transactions for the past 30 days
 	endDate := time.Now().Local().Format("2006-01-02")
 	startDate := time.Now().Local().Add(-30 * 24 * time.Hour).Format("2006-01-02")
+	fmt.Println("querying db for extenralaccounid", json.ExternalAccountID)
+	institutional_id, access_token := getExternalAccount(json.ExternalAccountID)
 
-	response, err := services.PlaidClient.GetTransactions("accessToken", startDate, endDate)
+	response, err := services.PlaidClient.GetTransactions(access_token, startDate, endDate)
 
 	if err != nil {
 		panic(err)
-		return
+	}
+
+	var transactions []plaid.Transaction
+
+	for _, tx := range response.Transactions {
+		if strings.EqualFold(tx.AccountID, institutional_id) {
+			transactions = append(transactions, tx)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"accounts":     response.Accounts,
-		"transactions": response.Transactions,
+		"message": "Successfully retrieved transactions",
+		"data":    transactions,
 	})
 }
 
@@ -145,7 +163,7 @@ func linkTokenCreate(
 func GetAccountAccessToken(accountID uuid.UUID) string {
 	connection := database.GetConnection()
 
-	query := "SELECT * FROM external_accounts WHERE external_account_id = $1"
+	query := "SELECT access_token FROM external_accounts WHERE external_account_id = $1"
 
 	stmt, err := connection.Prepare(query)
 
@@ -154,6 +172,7 @@ func GetAccountAccessToken(accountID uuid.UUID) string {
 	}
 
 	var access_token string
+
 	stmt.QueryRow(accountID).Scan(&access_token)
 
 	return access_token
@@ -171,7 +190,7 @@ type Account struct {
 func GetAllAccounts(c *gin.Context) {
 	connection := database.GetConnection()
 
-	query := "SELECT * FROM external_accounts WHERE user_id = $1"
+	query := "SELECT account_name, external_account_id FROM external_accounts WHERE user_id = $1"
 
 	stmt, err := connection.Prepare(query)
 
@@ -181,10 +200,10 @@ func GetAllAccounts(c *gin.Context) {
 	}
 
 	user := requests.GetUserFromContext(c)
-
+	fmt.Println("Querying to get accounts for user id ", user.UserID)
 	rows, err := stmt.Query(user.UserID)
 
-	if err != nil || !rows.NextResultSet() {
+	if err != nil {
 		requests.ThrowError(c, http.StatusNotFound, "User has no account registrations")
 		return
 	}
@@ -192,16 +211,19 @@ func GetAllAccounts(c *gin.Context) {
 	var accounts []Account
 
 	for rows.Next() {
-		var external_account_id uuid.UUID
-		var institutional_id string
-		var user_id uuid.UUID
-		var access_token string
+		var external_account_id string
 		var account_name string
 
-		rows.Scan(&access_token, external_account_id, &user_id, &account_name, &institutional_id)
+		rows.Scan(&account_name, &external_account_id)
+		fmt.Println(external_account_id, account_name)
 
+		id, err := uuid.FromString(external_account_id)
+
+		if err != nil {
+			panic("Unable to parse id from string")
+		}
 		act := Account{
-			ExternalAccountID: external_account_id,
+			ExternalAccountID: id,
 			AccountName:       account_name,
 		}
 
@@ -248,18 +270,21 @@ func RegisterAccessToken(c *gin.Context) {
 
 	connection := database.GetConnection()
 
-	query := "INSERT INTO external_accounts (institutional_id, access_token, account_name, user_id) ($1, $2, $3, $4)"
+	defer connection.Commit()
+
+	query := "INSERT INTO external_accounts (institutional_id, access_token, account_name, user_id) VALUES ($1, $2, $3, $4)"
 
 	stmt, err := connection.Prepare(query)
 
 	if err != nil {
+		fmt.Println(err)
 		panic("Something went wrong while preparing query")
 	}
 
 	accounts := getAccountsForAccessToken(accessToken)
 
 	for _, act := range accounts {
-		_, err = stmt.Exec(act.AccountID, accessToken, act.Name, userObj.UserID)
+		_, err = stmt.Exec(act.AccountID, accessToken, act.OfficialName+" "+act.Name, userObj.UserID)
 
 		if err != nil {
 			panic("Error occurred when looping over bank accounts from plaid")
@@ -284,4 +309,26 @@ func getAccountsForAccessToken(accessToken string) []plaid.Account {
 	}
 
 	return accounts.Accounts
+}
+
+func getExternalAccount(accountID uuid.UUID) (string, string) {
+	connection := database.GetConnection()
+
+	defer connection.Commit()
+
+	query := "SELECT institutional_id, access_token FROM external_accounts WHERE external_account_id = $1"
+
+	stmt, err := connection.Prepare(query)
+
+	if err != nil {
+		panic(err)
+	}
+
+	var institutional_id string
+	var access_token string
+
+	stmt.QueryRow(accountID).Scan(&institutional_id, &access_token)
+
+	fmt.Println(institutional_id, access_token)
+	return institutional_id, access_token
 }

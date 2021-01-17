@@ -170,6 +170,7 @@ func main() {
 	account.POST("/create-link-token", routes.CreateLinkToken)
 	account.POST("/transactions", routes.GetTransactions)
 	account.POST("/live-balances", routes.GetCurrentBalances)
+	account.POST("/register-token", routes.RegisterAccessToken)
 
 	// BUDGETS
 	budget.GET("/get", routes.GetBudgets)
