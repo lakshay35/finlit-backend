@@ -83,7 +83,6 @@ func (err CustomError) Error() string {
 func GetUser(googleID string) (*models.User, error) {
 	tx := database.GetConnection()
 	defer tx.Commit()
-	fmt.Println("Querying database for " + googleID)
 
 	stmt := database.PrepareStatement(tx, "SELECT * FROM users where google_id = $1")
 

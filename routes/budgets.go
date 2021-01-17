@@ -172,7 +172,6 @@ func doesBudgetExist(UserID uuid.UUID, budgetName string) bool {
 		return false
 	}
 
-	fmt.Println("Queried db for dudget named " + budgetName)
 	res, err := stmt.Query(UserID, budgetName)
 
 	if err != nil {

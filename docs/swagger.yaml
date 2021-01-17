@@ -1,0 +1,91 @@
+basePath: /api
+definitions:
+  routes.Account:
+    properties:
+      accountName:
+        type: string
+      externalAccountID:
+        type: string
+    type: object
+host: localhost:8000
+info:
+  contact:
+    email: lakshay35@gmail.com
+    name: Lakshay Sharma
+    url: sharmalakshay.com
+  description: This is an API for FinLit made by Lakshay Sharma
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: FinLit API
+  version: "1.0"
+paths:
+  /account/get:
+    get:
+      consumes:
+      - application/json
+      description: Gets a list of all external accounts registered via Plaid
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/routes.Account'
+            type: array
+      summary: Get all registered external accounts
+  /accounts/{id}:
+    get:
+      consumes:
+      - application/json
+      description: get string by ID
+      operationId: get-string-by-int
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      summary: Show a account
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+  OAuth2AccessCode:
+    authorizationUrl: https://example.com/oauth/authorize
+    flow: accessCode
+    scopes:
+      admin: ' Grants read and write access to administrative information'
+    tokenUrl: https://example.com/oauth/token
+    type: oauth2
+  OAuth2Application:
+    authorizationUrl: ""
+    flow: application
+    scopes:
+      admin: ' Grants read and write access to administrative information'
+      write: ' Grants write access'
+    tokenUrl: https://example.com/oauth/token
+    type: oauth2
+  OAuth2Implicit:
+    authorizationUrl: https://example.com/oauth/authorize
+    flow: implicit
+    scopes:
+      admin: ' Grants read and write access to administrative information'
+      write: ' Grants write access'
+    type: oauth2
+  OAuth2Password:
+    authorizationUrl: ""
+    flow: password
+    scopes:
+      admin: ' Grants read and write access to administrative information'
+      read: ' Grants read access'
+      write: ' Grants write access'
+    tokenUrl: https://example.com/oauth/token
+    type: oauth2
+swagger: "2.0"
+x-extension-openapi:
+  example: value on a json format

@@ -13,10 +13,6 @@ var database *sql.DB
 func InitializeDatabase() {
 	connectionString := os.Getenv("DATABASE_URL")
 
-	if connectionString == "" {
-		connectionString = "postgres://postgres:root@localhost:5432/finlit?sslmode=disable"
-	}
-
 	db, err := sql.Open("postgres", connectionString)
 
 	if err != nil {
