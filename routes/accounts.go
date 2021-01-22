@@ -223,10 +223,10 @@ func GetAllAccounts(c *gin.Context) {
 
 		rows.Scan(&account_name, &external_account_id)
 
-		id, err := uuid.FromBytes([]byte(external_account_id))
+		id := uuid.MustParse(external_account_id)
 
 		if err != nil {
-			panic("Unable to parse id from string")
+			panic(err)
 		}
 		act := Account{
 			ExternalAccountID: id,
