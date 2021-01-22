@@ -61,9 +61,61 @@
                     }
                 ]
             }
+        },
+        "/expense/add": {
+            "post": {
+                "description": "Deletes Expense",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Adds an expense to the database",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Expense"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "models.Expense": {
+            "type": "object",
+            "properties": {
+                "budget_id": {
+                    "type": "string"
+                },
+                "expense_charge_cycle": {
+                    "type": "string"
+                },
+                "expense_description": {
+                    "type": "string"
+                },
+                "expense_id": {
+                    "type": "string"
+                },
+                "expense_name": {
+                    "type": "string"
+                },
+                "expense_value": {
+                    "type": "number"
+                }
+            }
+        },
         "routes.Account": {
             "type": "object",
             "properties": {

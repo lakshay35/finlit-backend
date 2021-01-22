@@ -10,7 +10,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "swag init && git add ."
+      "pre-commit": "swag init && go mod tidy && git add ."
     }
   }
 }

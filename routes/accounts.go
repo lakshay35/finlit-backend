@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	uuid "github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	"github.com/lakshay35/finlit-backend/services"
 	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 	"github.com/plaid/plaid-go/plaid"
-	uuid "github.com/satori/go.uuid"
 )
 
 // GetAccountInformation ...
@@ -223,7 +223,7 @@ func GetAllAccounts(c *gin.Context) {
 
 		rows.Scan(&account_name, &external_account_id)
 
-		id, err := uuid.FromString(external_account_id)
+		id, err := uuid.FromBytes([]byte(external_account_id))
 
 		if err != nil {
 			panic("Unable to parse id from string")

@@ -116,12 +116,14 @@ func main() {
 	user := api.Group("/user")
 	role := api.Group("/role")
 	account := api.Group("/account")
+	expense := api.Group("/expense")
 
 	api.Use(middlewares.TokenAuthMiddleware())
 	budget.Use(middlewares.TokenAuthMiddleware())
 	user.Use(middlewares.TokenAuthMiddleware())
 	role.Use(middlewares.TokenAuthMiddleware())
 	account.Use(middlewares.TokenAuthMiddleware())
+	expense.Use(middlewares.TokenAuthMiddleware())
 
 	// TODO:
 	// api/account/transactions should validate body instead of returning a 500
@@ -150,6 +152,11 @@ func main() {
 
 	// ROLES
 	role.POST("/add-user-role-to-budget", routes.AddUserRoleToBudget)
+
+	// EXPENSE
+	expense.POST("/add", routes.AddExpense)
+	expense.GET("/get", routes.GetAllExpenses)
+	expense.GET("/get-expense-charge-cycles", routes.GetExpenseChargeCycles)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

@@ -1,5 +1,20 @@
 basePath: /api
 definitions:
+  models.Expense:
+    properties:
+      budget_id:
+        type: string
+      expense_charge_cycle:
+        type: string
+      expense_description:
+        type: string
+      expense_id:
+        type: string
+      expense_name:
+        type: string
+      expense_value:
+        type: number
+    type: object
   routes.Account:
     properties:
       accountName:
@@ -50,6 +65,25 @@ paths:
       produces:
       - application/json
       summary: Show a account
+  /expense/add:
+    post:
+      consumes:
+      - application/json
+      description: Deletes Expense
+      parameters:
+      - description: Expense ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Expense'
+      summary: Adds an expense to the database
 securityDefinitions:
   ApiKeyAuth:
     in: header

@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS budgets (
 
 CREATE TABLE IF NOT EXISTS expense_charge_cycles (
   expense_charge_cycle_id SERIAL PRIMARY KEY,
-  unit VARCHAR (50) NOT NULL
+  unit VARCHAR (50) NOT NULL UNIQUE,
 );
 
 CREATE TABLE IF NOT EXISTS	 expenses (

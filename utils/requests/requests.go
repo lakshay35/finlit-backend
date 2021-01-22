@@ -1,9 +1,6 @@
 package requests
 
 import (
-	"encoding/json"
-	"io/ioutil"
-
 	"github.com/gin-gonic/gin"
 	"github.com/lakshay35/finlit-backend/models"
 )
@@ -20,14 +17,8 @@ func ThrowError(c *gin.Context, code int, reason string) {
 // ParseBody ...
 // Parses body to defined type
 // Throws error if body does not match
-func ParseBody(c *gin.Context, res *interface{}) error {
-	jsonData, err := ioutil.ReadAll(c.Request.Body)
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = json.Unmarshal(jsonData, &res)
+func ParseBody(c *gin.Context, res interface{}) error {
+	err := c.BindJSON(&res)
 
 	if err != nil {
 		ThrowError(c, 400, "request body structure match error")
