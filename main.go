@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"github.com/lakshay35/finlit-backend/docs"
 	"github.com/lakshay35/finlit-backend/services"
 
 	"github.com/gin-contrib/cors"
@@ -24,6 +25,16 @@ func init() {
 type account struct {
 	UserID      string `json:"accountId"`
 	AccessToken string `json:"accessToken"`
+}
+
+func setupSwaggerMetadata() {
+	// programmatically set swagger info
+	docs.SwaggerInfo.Title = "FinLit API"
+	docs.SwaggerInfo.Description = "This is a REST API for the FinLit Application"
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = services.GetEnvVariable("HOST")
+	docs.SwaggerInfo.BasePath = "/api"
+	docs.SwaggerInfo.Schemes = []string{"http", "https"}
 }
 
 // var iv = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 05}
@@ -52,19 +63,10 @@ type account struct {
 // 	return string(ciphertext)
 // }
 
-// @title FinLit API
-// @version 1.0
-// @description This is an API for FinLit made by Lakshay Sharma
-
 // @contact.name Lakshay Sharma
 // @contact.url sharmalakshay.com
 // @contact.email lakshay35@gmail.com
 
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8000
-// @BasePath /api
 // @query.collection.format multi
 
 // @securityDefinitions.apikey ApiKeyAuth
@@ -95,6 +97,8 @@ type account struct {
 // @x-extension-openapi {"example": "value on a json format"}
 func main() {
 
+	setupSwaggerMetadata()
+
 	database.InitializeDatabase()
 
 	r := gin.Default()
@@ -111,19 +115,42 @@ func main() {
 		MaxAge: 12 * time.Hour,
 	}))
 
+	// @Failure 403,404 {object} httputil.HTTPError
 	api := r.Group("/api")
-	budget := api.Group("/budget")
-	user := api.Group("/user")
-	role := api.Group("/role")
-	account := api.Group("/account")
-	expense := api.Group("/expense")
-
-	api.Use(middlewares.TokenAuthMiddleware())
-	budget.Use(middlewares.TokenAuthMiddleware())
-	user.Use(middlewares.TokenAuthMiddleware())
-	role.Use(middlewares.TokenAuthMiddleware())
-	account.Use(middlewares.TokenAuthMiddleware())
-	expense.Use(middlewares.TokenAuthMiddleware())
+	{
+		api.Use(middlewares.TokenAuthMiddleware())
+		budget := api.Group("/budget")
+		{
+			budget.GET("/get", routes.GetBudgets)
+			budget.POST("/create", routes.CreateBudget)
+		}
+		user := api.Group("/user")
+		{
+			user.POST("/register", routes.RegisterUser)
+			user.GET("/get ", routes.GetUserProfile)
+		}
+		role := api.Group("/role")
+		{
+			role.POST("/add-user-role-to-budget", routes.AddUserRoleToBudget)
+		}
+		account := api.Group("/account")
+		{
+			account.GET("/get", routes.GetAllAccounts)
+			account.POST("/get-account-details", routes.GetAccountInformation)
+			account.POST("/create-link-token", routes.CreateLinkToken)
+			account.POST("/transactions", routes.GetTransactions)
+			account.POST("/live-balances", routes.GetCurrentBalances)
+			account.POST("/register-token", routes.RegisterAccessToken)
+		}
+		expense := api.Group("/expense")
+		{
+			expense.POST("/add", routes.AddExpense)
+			expense.GET("/get", routes.GetAllExpenses)
+			expense.GET("/get-expense-charge-cycles", routes.GetExpenseChargeCycles)
+			expense.DELETE("/delete/:id", routes.DeleteExpense)
+			expense.PUT("/update", routes.UpdateExpense)
+		}
+	}
 
 	// TODO:
 	// api/account/transactions should validate body instead of returning a 500
@@ -131,32 +158,6 @@ func main() {
 	// api/user/register should validate body instead of registering a user with empty values
 	// api/role/add-user-role-to-budget should be renamed and should validate body instead of returning a 500
 	// migrate services into services module
-	// Integrate logging heroku addon
-	// Integrate swagger for a visual in terms of api endpoints
-
-	// ACCOUNTS
-	account.GET("/get", routes.GetAllAccounts)
-	account.POST("/get-account-details", routes.GetAccountInformation)
-	account.POST("/create-link-token", routes.CreateLinkToken)
-	account.POST("/transactions", routes.GetTransactions)
-	account.POST("/live-balances", routes.GetCurrentBalances)
-	account.POST("/register-token", routes.RegisterAccessToken)
-
-	// BUDGETS
-	budget.GET("/get", routes.GetBudgets)
-	budget.POST("/create", routes.CreateBudget)
-
-	// USERS
-	user.POST("/register", routes.RegisterUser)
-	user.GET("/profile", routes.GetUserProfile)
-
-	// ROLES
-	role.POST("/add-user-role-to-budget", routes.AddUserRoleToBudget)
-
-	// EXPENSE
-	expense.POST("/add", routes.AddExpense)
-	expense.GET("/get", routes.GetAllExpenses)
-	expense.GET("/get-expense-charge-cycles", routes.GetExpenseChargeCycles)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

@@ -14,7 +14,13 @@ import (
 )
 
 // RegisterUser ...
-// registers user in the database
+// @Summary Registers user to the database
+// @Description Registers a user profile in the finlit database
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} models.User
+// @Failure 403,409
+// @Router /user/register [post]
 func RegisterUser(c *gin.Context) {
 
 	res := models.User{}
@@ -27,9 +33,9 @@ func RegisterUser(c *gin.Context) {
 	json.Unmarshal(jsonData, &res)
 	tx := database.GetConnection()
 	defer tx.Commit()
-	stmt := database.PrepareStatement(tx, "INSERT INTO users (first_name, last_name, email, phone, google_id) VALUES ($1, $2, $3, $4, $5)")
+	stmt := database.PrepareStatement(tx, "INSERT INTO users (first_name, last_name, email, phone, google_id) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, registration_date")
 
-	_, err = stmt.Exec(res.FirstName, res.LastName, res.Email, res.Phone, res.GoogleID)
+	err = stmt.QueryRow(res.FirstName, res.LastName, res.Email, res.Phone, res.GoogleID).Scan(&res.UserID, &res.RegistrationDate)
 	if err != nil {
 		fmt.Println(err)
 		requests.ThrowError(c, http.StatusConflict, "User already exists")
@@ -43,7 +49,14 @@ func RegisterUser(c *gin.Context) {
 }
 
 // GetUserProfile ...
-// Gets user profile from db
+// @Summary Gets user from the database
+// @Description Gets the user's profile from the finlit database
+// @ID user-get
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} models.User
+// @Failure 403,404
+// @Router /user/get [get]
 func GetUserProfile(c *gin.Context) {
 	userID, exists := c.Get("USERID")
 
@@ -78,8 +91,8 @@ func (err CustomError) Error() string {
 	return err.Message
 }
 
-// GetUser ...
-// Gets user object from db
+//GetUser ...
+// Gets user from database
 func GetUser(googleID string) (*models.User, error) {
 	tx := database.GetConnection()
 	defer tx.Commit()

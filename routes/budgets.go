@@ -24,7 +24,15 @@ type budgetResponse struct {
 }
 
 // CreateBudget ...
-// Create a Budget
+// @Summary Create a budget
+// @Description Creates a budget with requesting user as owner
+// @Accept  json
+// @Param id path string true "Expense ID (UUID)"
+// @Produce  json
+// @Param budget body budget true "Budget body needed to create budget"
+// @Success 200 {object} models.Expense
+// @Failure 403
+// @Router /budget/create [post]
 func CreateBudget(c *gin.Context) {
 	res := budget{}
 	err := parseBudget(c, &res)
@@ -70,9 +78,14 @@ func CreateBudget(c *gin.Context) {
 	})
 }
 
-// GetBudgets ...
-// gets budgets pertaining
-// to current user
+// @Summary Get Budgets
+// @Description Gets a list of all budgets current user is a part of
+// @Accept  json
+// @Param id path string true "Expense ID (UUID)"
+// @Produce  json
+// @Success 200 {object} []budgetResponse
+// @Failure 403
+// @Router /budget/get [post]
 func GetBudgets(c *gin.Context) {
 	connection := database.GetConnection()
 	defer connection.Commit()

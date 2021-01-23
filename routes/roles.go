@@ -21,6 +21,15 @@ type addRoleRequest struct {
 
 // AddUserRoleToBudget ...
 // Adds role to user
+// RegisterUser ...
+// registers user in the database
+// @Summary Registers user to the database
+// @Description Registers a user profile in the finlit database
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} []Account
+// @Failure 403,409
+// @Router /user/register [post]
 func AddUserRoleToBudget(c *gin.Context) {
 
 	user, found := c.Get("USER")

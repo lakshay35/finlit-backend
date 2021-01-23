@@ -23,10 +23,6 @@ var doc = `{
             "url": "sharmalakshay.com",
             "email": "lakshay35@gmail.com"
         },
-        "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -51,42 +47,172 @@ var doc = `{
                                 "$ref": "#/definitions/routes.Account"
                             }
                         }
+                    },
+                    "403": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
                     }
                 }
             }
         },
-        "/accounts/{id}": {
+        "/account/get-account-details": {
             "get": {
-                "description": "get string by ID",
+                "description": "Gets account information based on access token",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Show a account",
-                "operationId": "get-string-by-int",
+                "summary": "Get Get Account Information",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Account ID",
+                        "description": "Account payload to get informaion on",
+                        "name": "account",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.Account"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Expense"
+                        }
+                    }
+                }
+            }
+        },
+        "/account/live-balances": {
+            "get": {
+                "description": "Retrieves live account balances for all accounts attached to an external account registratiom",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get Current A/c Balances"
+            }
+        },
+        "/account/register-token": {
+            "post": {
+                "description": "Creates a permanent access token based on public token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Register Access Token",
+                "parameters": [
+                    {
+                        "description": "Token Payload for registering access token",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.tokenPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Expense"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/account/transactions": {
+            "get": {
+                "description": "Gets all transactions for the  past 30 days",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get Transactions",
+                "parameters": [
+                    {
+                        "description": "Account payload to identify transactions with",
+                        "name": "id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.Account"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/budget/create": {
+            "post": {
+                "description": "Creates a budget with requesting user as owner",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create a budget",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Budget body needed to create budget",
+                        "name": "budget",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.budget"
+                        }
                     }
-                ]
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Expense"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
             }
         },
-        "/expense/add": {
+        "/budget/get": {
             "post": {
-                "description": "Deletes Expense",
+                "description": "Gets a list of all budgets current user is a part of",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Adds an expense to the database",
+                "summary": "Get Budgets",
                 "parameters": [
                     {
                         "type": "string",
@@ -100,8 +226,262 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/routes.budgetResponse"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/expense/add": {
+            "post": {
+                "description": "Add expense to an existing budget",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Adds an expense to the database",
+                "parameters": [
+                    {
+                        "description": "Expense payload representing entity to be created",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
                             "$ref": "#/definitions/models.Expense"
                         }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Expense"
+                        }
+                    },
+                    "400": {
+                        "description": ""
+                    },
+                    "401": {
+                        "description": ""
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/expense/delete/{id}": {
+            "delete": {
+                "description": "Deletes Expense from DB based on id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Deletes Expense",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID of Expense",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": ""
+                    },
+                    "401": {
+                        "description": ""
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/expense/get": {
+            "get": {
+                "description": "Gets a list of all expenses tied to a given budget",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Gets expenses for budget",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Budget ID to get expenses against",
+                        "name": "budgetID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Expense"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": ""
+                    },
+                    "401": {
+                        "description": ""
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/expense/get-expense-charge-cycles": {
+            "get": {
+                "description": "Gets all the expense charge cycles available to create an expense for a budget",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Gets a list of expense charge cycles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ExpenseChargeCycle"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/expense/update": {
+            "put": {
+                "description": "Add expense to an existing budget",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Adds an expense to the database",
+                "parameters": [
+                    {
+                        "description": "Expense payload representing entity to be updated",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Expense"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "$ref": "#/definitions/models.Expense"
+                        }
+                    },
+                    "400": {
+                        "description": ""
+                    },
+                    "401": {
+                        "description": ""
+                    },
+                    "403": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/get": {
+            "get": {
+                "description": "Gets the user's profile from the finlit database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Gets user from the database",
+                "operationId": "user-get",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/register": {
+            "post": {
+                "description": "Registers a user profile in the finlit database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Registers user to the database",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/routes.Account"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    },
+                    "409": {
+                        "description": ""
                     }
                 }
             }
@@ -131,6 +511,43 @@ var doc = `{
                 }
             }
         },
+        "models.ExpenseChargeCycle": {
+            "type": "object",
+            "properties": {
+                "expense_charge_cycle_id": {
+                    "type": "integer"
+                },
+                "unit": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.User": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "googleID": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "registrationDate": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
         "routes.Account": {
             "type": "object",
             "properties": {
@@ -138,6 +555,44 @@ var doc = `{
                     "type": "string"
                 },
                 "externalAccountID": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.LinkTokenPayload": {
+            "type": "object",
+            "properties": {
+                "linkToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.budget": {
+            "type": "object",
+            "properties": {
+                "budgetName": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.budgetResponse": {
+            "type": "object",
+            "properties": {
+                "budgetID": {
+                    "type": "string"
+                },
+                "budgetName": {
+                    "type": "string"
+                },
+                "ownerID": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.tokenPayload": {
+            "type": "object",
+            "properties": {
+                "public_token": {
                     "type": "string"
                 }
             }
@@ -205,12 +660,12 @@ type swaggerInfo struct {
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = swaggerInfo{
-	Version:     "1.0",
-	Host:        "localhost:8000",
-	BasePath:    "/api",
+	Version:     "",
+	Host:        "",
+	BasePath:    "",
 	Schemes:     []string{},
-	Title:       "FinLit API",
-	Description: "This is an API for FinLit made by Lakshay Sharma",
+	Title:       "",
+	Description: "",
 }
 
 type s struct{}

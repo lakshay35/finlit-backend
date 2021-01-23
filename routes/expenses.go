@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +15,9 @@ import (
 // @Description Add expense to an existing budget
 // @Accept  json
 // @Produce  json
-// @Success 200 {object} models.Expense
+// @Param body body models.Expense true "Expense payload representing entity to be created"
+// @Success 201 {object} models.Expense
+// @Failure 403,400,401
 // @Router /expense/add [post]
 func AddExpense(c *gin.Context) {
 
@@ -27,7 +28,7 @@ func AddExpense(c *gin.Context) {
 		requests.ThrowError(c, http.StatusBadRequest, "Payload does not match")
 	}
 
-	expenseChargeCycleID, err := getExpenseID(expense.ExpenseChargeCycle)
+	expenseChargeCycleID, err := getExpenseChargeCycleID(expense.ExpenseChargeCycle)
 
 	if err != nil {
 		requests.ThrowError(
@@ -88,16 +89,26 @@ func AddExpense(c *gin.Context) {
 // @Description Gets a list of all expenses tied to a given budget
 // @Accept  json
 // @Produce  json
+// @Param budgetID header string true "Budget ID to get expenses against"
 // @Success 200 {object} []models.Expense
-// @Router /expense/add [post]
+// @Failure 403,400,401
+// @Router /expense/get [get]
 func GetAllExpenses(c *gin.Context) {
 
-	var budget models.Budget
-	c.BindJSON(&budget)
+	budgetID, err := uuid.Parse(c.GetHeader("Budget-ID"))
+
+	if err != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			"Header 'Budget-ID' missing in request",
+		)
+		return
+	}
 
 	user := requests.GetUserFromContext(c)
 
-	if !isUserViewer(budget.BudgetID, user.UserID) && !isUserOwner(budget.BudgetID, user.UserID) {
+	if !isUserViewer(budgetID, user.UserID) && !isUserOwner(budgetID, user.UserID) {
 		requests.ThrowError(
 			c,
 			http.StatusUnauthorized,
@@ -116,7 +127,7 @@ func GetAllExpenses(c *gin.Context) {
 
 	stmt := database.PrepareStatement(connection, query)
 
-	rows, err := stmt.Query(budget.BudgetID)
+	rows, err := stmt.Query(budgetID)
 
 	if err != nil {
 		panic(err)
@@ -152,25 +163,27 @@ func GetAllExpenses(c *gin.Context) {
 
 }
 
-// TODO: Check permissions and authorizations
 // UpdateExpense ..
 // @Summary Adds an expense to the database
 // @Description Add expense to an existing budget
 // @Accept  json
 // @Produce  json
-// @Success 200 {object} models.Expense
-// @Router /expense/add [post]
+// @Param body body models.Expense true "Expense payload representing entity to be updated"
+// @Success 204 {object} models.Expense
+// @Failure 403,401,404,400
+// @Router /expense/update [put]
 func UpdateExpense(c *gin.Context) {
 
 	var expense models.Expense
 
 	err := requests.ParseBody(c, &expense)
-
 	if err != nil {
 		return
 	}
 
-	if !doesExpenseExist(expense.ExpenseID) {
+	// Ensure expense exists
+	_, err = getExpense(expense.ExpenseID)
+	if err != nil {
 		requests.ThrowError(
 			c,
 			http.StatusNotFound,
@@ -181,20 +194,8 @@ func UpdateExpense(c *gin.Context) {
 
 	user := requests.GetUserFromContext(c)
 
-	// expenseID, err := getExpenseID(expense.ExpenseChargeCycle)
-
-	if err != nil {
-		// requests.ThrowError(
-		// 	c,
-		// 	http.StatusBadRequest,
-		// 	"expense_charge_cycle %s is not valid", expense.ExpenseChargeCycle,
-		// )
-		return
-	}
-	isUserAdmin := isUserAdmin(expense.BudgetID, user.UserID)
-	isUserOwner := isUserOwner(expense.BudgetID, user.UserID)
-	fmt.Printf("Admin: %t Owner: %t", isUserAdmin, isUserOwner)
-	if !isUserAdmin && !isUserOwner {
+	// Ensure user is authorized to update expense
+	if !isUserOwner(expense.BudgetID, user.UserID) && !isUserAdmin(expense.BudgetID, user.UserID) {
 		requests.ThrowError(
 			c,
 			http.StatusUnauthorized,
@@ -203,12 +204,20 @@ func UpdateExpense(c *gin.Context) {
 		return
 	}
 
-	connection := database.GetConnection()
+	// Ensures expenseID is passed
+	if expense.ExpenseID.String() != "" {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			"Valid expense_id not passed",
+		)
+	}
 
+	connection := database.GetConnection()
 	defer connection.Commit()
 
 	query := `UPDATE expenses (budget_id, expense_name, expense_value, expense_description, expense_charge_cycle_id
-	) VALUES ($1, $2, $3, $4, $5) WHERE expense_id = $6`
+	) VALUES ($1, $2, $3, $4, $5) WHERE expense_id = $6 `
 
 	stmt := database.PrepareStatement(connection, query)
 
@@ -222,11 +231,15 @@ func UpdateExpense(c *gin.Context) {
 	)
 
 	if err != nil {
-		panic("Something went wrong while adding expense")
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			err.Error(),
+		)
 	}
 
 	c.JSON(
-		http.StatusCreated,
+		http.StatusNoContent,
 		gin.H{
 			"message": "Successfully updated expense",
 			"data":    expense,
@@ -234,22 +247,40 @@ func UpdateExpense(c *gin.Context) {
 	)
 }
 
-// TODO: Check permission and authorization
 // DeleteExpense ..
-// @Summary Adds an expense to the database
-// @Description Deletes Expense
+// @Summary Deletes Expense
+// @Description Deletes Expense from DB based on id
 // @Accept  json
 // @Param id path string true "Expense ID (UUID)"
 // @Produce  json
-// @Success 200 {object} models.Expense
-// @Router /expense/add [post]
+// @Param id path string true "ID of Expense"
+// @Success 204
+// @Failure 403,401,400
+// @Router /expense/delete/{id} [delete]
 func DeleteExpense(c *gin.Context) {
-
-	var expense models.Expense
-
-	err := requests.ParseBody(c, &expense)
+	id, err := uuid.Parse(c.Param("id"))
 
 	if err != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			err.Error(),
+		)
+
+		return
+	}
+
+	expense, err := getExpense(id)
+
+	user := requests.GetUserFromContext(c)
+
+	// Ensure user is authorized to update expense
+	if !isUserOwner(expense.BudgetID, user.UserID) && !isUserAdmin(expense.BudgetID, user.UserID) {
+		requests.ThrowError(
+			c,
+			http.StatusUnauthorized,
+			"You do not have enough permissions to delete expenses from this budget",
+		)
 		return
 	}
 
@@ -257,36 +288,39 @@ func DeleteExpense(c *gin.Context) {
 
 	defer connection.Commit()
 
-	query := `UPDATE expenses (budget_id, expense_name, expense_value, expense_description, expense_charge_cycle_id
-	) VALUES ($1, $2, $3, $4, $5) WHERE expense_id = $6`
+	query := `DELETE FROM expenses WHERE expense_id = $1`
 
 	stmt := database.PrepareStatement(connection, query)
 
 	_, err = stmt.Exec(
-		expense.BudgetID,
-		expense.ExpenseName,
-		expense.ExpenseValue,
-		expense.ExpenseDescription,
-		expense.ExpenseChargeCycle,
-		expense.ExpenseID,
+		id,
 	)
 
 	if err != nil {
-		panic("Something went wrong while adding expense")
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			err.Error(),
+		)
 	}
 
 	c.JSON(
-		http.StatusCreated,
+		http.StatusNoContent,
 		gin.H{
-			"message": "Successfully updated expense",
-			"data":    expense,
+			"message": "Successfully deleted expense",
+			"data":    nil,
 		},
 	)
 }
 
 // GetExpenseChargeCycles ...
-// Gets all the expense charge cycles
-// available to create an expense for a budget
+// @Summary Gets a list of expense charge cycles
+// @Description Gets all the expense charge cycles available to create an expense for a budget
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} []models.ExpenseChargeCycle
+// @Failure 403
+// @Router /expense/get-expense-charge-cycles [get]
 func GetExpenseChargeCycles(c *gin.Context) {
 	connection := database.GetConnection()
 
@@ -320,9 +354,9 @@ func GetExpenseChargeCycles(c *gin.Context) {
 
 }
 
-// doesExpenseExist
-// Determines if their is an expense with the given ID
-func doesExpenseExist(id uuid.UUID) bool {
+// getExpense
+// Gets expense based on expense_id
+func getExpense(id uuid.UUID) (*models.Expense, error) {
 	connection := database.GetConnection()
 
 	defer connection.Commit()
@@ -331,13 +365,32 @@ func doesExpenseExist(id uuid.UUID) bool {
 
 	stmt := database.PrepareStatement(connection, query)
 
-	rows, err := stmt.Query(id)
+	var expense models.Expense
+
+	var expense_charge_cycle_id int
+
+	err := stmt.QueryRow(id).Scan(
+		&expense.ExpenseID,
+		&expense.BudgetID,
+		&expense.ExpenseName,
+		&expense.ExpenseValue,
+		&expense.ExpenseDescription,
+		&expense_charge_cycle_id,
+	)
+
+	unit, err := getExpenseChargeCycleName(expense_charge_cycle_id)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return rows.Next()
+	expense.ExpenseChargeCycle = unit
+
+	if err != nil {
+		return &models.Expense{}, err
+	}
+
+	return &expense, nil
 }
 
 // isUserAdmin
@@ -368,7 +421,8 @@ func isUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
 
 	defer connection.Commit()
 
-	query := "SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.budget_id = $2"
+	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'View Rights')
+	AND ur.budget_id = $2`
 
 	stmt := database.PrepareStatement(connection, query)
 
@@ -402,8 +456,8 @@ func isUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
 }
 
 // getExpenseID
-// Gets expense id for a given expense name
-func getExpenseID(expenseName string) (int, error) {
+// Gets expense charge cycle id for a given expense name
+func getExpenseChargeCycleID(expenseName string) (int, error) {
 	connection := database.GetConnection()
 
 	defer connection.Commit()
@@ -421,4 +475,26 @@ func getExpenseID(expenseName string) (int, error) {
 	}
 
 	return expense_charge_cycle_id, nil
+}
+
+// getExpenseChargeCycleName
+// Gets the name of an expense charge cycle based on id
+func getExpenseChargeCycleName(expenseChargeCycleID int) (string, error) {
+	connection := database.GetConnection()
+
+	defer connection.Commit()
+
+	query := "SELECT unit from expense_charge_cycles WHERE expense_charge_cycle_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	var unit string
+
+	err := stmt.QueryRow(expenseChargeCycleID).Scan(&unit)
+
+	if err != nil {
+		return "", err
+	}
+
+	return unit, nil
 }

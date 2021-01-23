@@ -16,7 +16,13 @@ import (
 )
 
 // GetAccountInformation ...
-// Gets account information based on access token
+// @Summary Get Get Account Information
+// @Description Gets account information based on access token
+// @Accept  json
+// @Param account body Account true "Account payload to get informaion on"
+// @Produce  json
+// @Success 200 {object} models.Expense
+// @Router /account/get-account-details [get]
 func GetAccountInformation(c *gin.Context) {
 
 	var json Account
@@ -50,11 +56,15 @@ func GetAccountInformation(c *gin.Context) {
 }
 
 // GetCurrentBalances ...
+// @Summary Get Current A/c Balances
+// @Description Retrieves live account balances for all accounts attached to an external account registratiom
+// @Accept  json
+// @Produce  json
+// @Router /account/live-balances [get]
 func GetCurrentBalances(c *gin.Context) {
 	response, err := services.PlaidClient().GetBalances("accessToken")
 	if err != nil {
 		panic(err)
-		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -63,6 +73,13 @@ func GetCurrentBalances(c *gin.Context) {
 }
 
 // GetTransactions ...
+// @Summary Get Transactions
+// @Description Gets all transactions for the  past 30 days
+// @Accept  json
+// @Produce  json
+// @Param id body Account true "Account payload to identify transactions with"
+// @Failure 403
+// @Router /account/transactions [get]
 func GetTransactions(c *gin.Context) {
 	var json Account
 	c.BindJSON(&json)
@@ -100,6 +117,13 @@ type LinkTokenPayload struct {
 
 // CreateLinkToken ...
 // Creates link token
+// @Summary Create Link Token
+// @Description Creates a link token to setup UI for generating public tokens
+// @Accept  json
+// @Param id path string true "Expense ID (UUID)"
+// @Produce  json
+// @Success 200 {object} LinkTokenPayload
+// @Router /budget/create [post]
 func CreateLinkToken(c *gin.Context) {
 	linkToken, err := linkTokenCreate(nil)
 	if err != nil {
@@ -161,7 +185,7 @@ func linkTokenCreate(
 // GetAccountAccessToken ...
 // Get access token for an account based
 // on accountID
-func GetAccountAccessToken(accountID uuid.UUID) string {
+func getAccoubtAccessToken(accountID uuid.UUID) string {
 	connection := database.GetConnection()
 
 	query := "SELECT access_token FROM external_accounts WHERE external_account_id = $1"
@@ -193,6 +217,7 @@ type Account struct {
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} []Account
+// @Failure 403,404
 // @Router /account/get [get]
 func GetAllAccounts(c *gin.Context) {
 	connection := database.GetConnection()
@@ -250,15 +275,14 @@ type tokenPayload struct {
 // Exchanges public token for a
 // permanent access token and stores
 // it in the database
-// ShowAccount godoc
-// @Summary Show a account
-// @Description get string by ID
-// @ID get-string-by-int
+// @Summary Register Access Token
+// @Description Creates a permanent access token based on public token
 // @Accept  json
+// @Param payload body tokenPayload true "Token Payload for registering access token"
 // @Produce  json
-// @Param id path int true "Account ID"
-// @Header 200 {string} Token "qwerty"
-// @Router /accounts/{id} [get]
+// @Success 201 {object} models.Expense
+// @Failure 403
+// @Router /account/register-token [post]
 func RegisterAccessToken(c *gin.Context) {
 	var json tokenPayload
 	err := c.BindJSON(&json)

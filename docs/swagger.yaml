@@ -1,4 +1,3 @@
-basePath: /api
 definitions:
   models.Expense:
     properties:
@@ -15,6 +14,30 @@ definitions:
       expense_value:
         type: number
     type: object
+  models.ExpenseChargeCycle:
+    properties:
+      expense_charge_cycle_id:
+        type: integer
+      unit:
+        type: string
+    type: object
+  models.User:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      googleID:
+        type: string
+      lastName:
+        type: string
+      phone:
+        type: string
+      registrationDate:
+        type: string
+      userID:
+        type: string
+    type: object
   routes.Account:
     properties:
       accountName:
@@ -22,18 +45,35 @@ definitions:
       externalAccountID:
         type: string
     type: object
-host: localhost:8000
+  routes.LinkTokenPayload:
+    properties:
+      linkToken:
+        type: string
+    type: object
+  routes.budget:
+    properties:
+      budgetName:
+        type: string
+    type: object
+  routes.budgetResponse:
+    properties:
+      budgetID:
+        type: string
+      budgetName:
+        type: string
+      ownerID:
+        type: string
+    type: object
+  routes.tokenPayload:
+    properties:
+      public_token:
+        type: string
+    type: object
 info:
   contact:
     email: lakshay35@gmail.com
     name: Lakshay Sharma
     url: sharmalakshay.com
-  description: This is an API for FinLit made by Lakshay Sharma
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  title: FinLit API
-  version: "1.0"
 paths:
   /account/get:
     get:
@@ -49,27 +89,112 @@ paths:
             items:
               $ref: '#/definitions/routes.Account'
             type: array
+        "403":
+          description: ""
+        "404":
+          description: ""
       summary: Get all registered external accounts
-  /accounts/{id}:
+  /account/get-account-details:
     get:
       consumes:
       - application/json
-      description: get string by ID
-      operationId: get-string-by-int
+      description: Gets account information based on access token
       parameters:
-      - description: Account ID
-        in: path
-        name: id
+      - description: Account payload to get informaion on
+        in: body
+        name: account
         required: true
-        type: integer
+        schema:
+          $ref: '#/definitions/routes.Account'
       produces:
       - application/json
-      summary: Show a account
-  /expense/add:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Expense'
+      summary: Get Get Account Information
+  /account/live-balances:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves live account balances for all accounts attached to an
+        external account registratiom
+      produces:
+      - application/json
+      summary: Get Current A/c Balances
+  /account/register-token:
     post:
       consumes:
       - application/json
-      description: Deletes Expense
+      description: Creates a permanent access token based on public token
+      parameters:
+      - description: Token Payload for registering access token
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/routes.tokenPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Expense'
+        "403":
+          description: ""
+      summary: Register Access Token
+  /account/transactions:
+    get:
+      consumes:
+      - application/json
+      description: Gets all transactions for the  past 30 days
+      parameters:
+      - description: Account payload to identify transactions with
+        in: body
+        name: id
+        required: true
+        schema:
+          $ref: '#/definitions/routes.Account'
+      produces:
+      - application/json
+      responses:
+        "403":
+          description: ""
+      summary: Get Transactions
+  /budget/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a budget with requesting user as owner
+      parameters:
+      - description: Expense ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Budget body needed to create budget
+        in: body
+        name: budget
+        required: true
+        schema:
+          $ref: '#/definitions/routes.budget'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Expense'
+        "403":
+          description: ""
+      summary: Create a budget
+  /budget/get:
+    post:
+      consumes:
+      - application/json
+      description: Gets a list of all budgets current user is a part of
       parameters:
       - description: Expense ID (UUID)
         in: path
@@ -82,8 +207,176 @@ paths:
         "200":
           description: OK
           schema:
+            items:
+              $ref: '#/definitions/routes.budgetResponse'
+            type: array
+        "403":
+          description: ""
+      summary: Get Budgets
+  /expense/add:
+    post:
+      consumes:
+      - application/json
+      description: Add expense to an existing budget
+      parameters:
+      - description: Expense payload representing entity to be created
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Expense'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
             $ref: '#/definitions/models.Expense'
+        "400":
+          description: ""
+        "401":
+          description: ""
+        "403":
+          description: ""
       summary: Adds an expense to the database
+  /expense/delete/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes Expense from DB based on id
+      parameters:
+      - description: Expense ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: ID of Expense
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: ""
+        "400":
+          description: ""
+        "401":
+          description: ""
+        "403":
+          description: ""
+      summary: Deletes Expense
+  /expense/get:
+    get:
+      consumes:
+      - application/json
+      description: Gets a list of all expenses tied to a given budget
+      parameters:
+      - description: Budget ID to get expenses against
+        in: header
+        name: budgetID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Expense'
+            type: array
+        "400":
+          description: ""
+        "401":
+          description: ""
+        "403":
+          description: ""
+      summary: Gets expenses for budget
+  /expense/get-expense-charge-cycles:
+    get:
+      consumes:
+      - application/json
+      description: Gets all the expense charge cycles available to create an expense
+        for a budget
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ExpenseChargeCycle'
+            type: array
+        "403":
+          description: ""
+      summary: Gets a list of expense charge cycles
+  /expense/update:
+    put:
+      consumes:
+      - application/json
+      description: Add expense to an existing budget
+      parameters:
+      - description: Expense payload representing entity to be updated
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Expense'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/models.Expense'
+        "400":
+          description: ""
+        "401":
+          description: ""
+        "403":
+          description: ""
+        "404":
+          description: ""
+      summary: Adds an expense to the database
+  /user/get:
+    get:
+      consumes:
+      - application/json
+      description: Gets the user's profile from the finlit database
+      operationId: user-get
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "403":
+          description: ""
+        "404":
+          description: ""
+      summary: Gets user from the database
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      description: Registers a user profile in the finlit database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/routes.Account'
+            type: array
+        "403":
+          description: ""
+        "409":
+          description: ""
+      summary: Registers user to the database
 securityDefinitions:
   ApiKeyAuth:
     in: header
