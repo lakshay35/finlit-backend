@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
+	userService "github.com/lakshay35/finlit-backend/services/user"
 	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
@@ -16,10 +16,13 @@ import (
 // RegisterUser ...
 // @Summary Registers user to the database
 // @Description Registers a user profile in the finlit database
+// @Tags user
 // @Accept  json
 // @Produce  json
+// @Security ApiKeyAuth
 // @Success 200 {object} models.User
-// @Failure 403,409
+// @Failure 403 {object} models.Error
+// @Failure 409 {object} models.Error
 // @Router /user/register [post]
 func RegisterUser(c *gin.Context) {
 
@@ -42,20 +45,20 @@ func RegisterUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":    res,
-		"message": "Successfully registered your profile",
-	})
+	c.JSON(http.StatusOK, res)
 }
 
 // GetUserProfile ...
 // @Summary Gets user from the database
 // @Description Gets the user's profile from the finlit database
+// @Tags user
 // @ID user-get
 // @Accept  json
 // @Produce  json
+// @Security ApiKeyAuth
 // @Success 200 {object} models.User
-// @Failure 403,404
+// @Failure 403 {object} models.Error
+// @Failure 404 {object} models.Error
 // @Router /user/get [get]
 func GetUserProfile(c *gin.Context) {
 	userID, exists := c.Get("USERID")
@@ -64,7 +67,7 @@ func GetUserProfile(c *gin.Context) {
 		panic("USERID not present when trying to get user profile")
 	}
 
-	user, err := GetUser(userID.(string))
+	user, err := userService.GetUser(userID.(string))
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -74,10 +77,7 @@ func GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Successfully retrieved user profile",
-		"data":    user,
-	})
+	c.JSON(http.StatusOK, user)
 }
 
 // CustomError ...
@@ -89,44 +89,4 @@ type CustomError struct {
 // Return error Message
 func (err CustomError) Error() string {
 	return err.Message
-}
-
-//GetUser ...
-// Gets user from database
-func GetUser(googleID string) (*models.User, error) {
-	tx := database.GetConnection()
-	defer tx.Commit()
-
-	stmt := database.PrepareStatement(tx, "SELECT * FROM users where google_id = $1")
-
-	res, err := stmt.Query(googleID)
-
-	if err != nil || !res.Next() {
-		fmt.Println("USER NOT FOUND IN DB")
-		return nil, CustomError{
-			Message: "User does not exist",
-		}
-	}
-
-	var userResult models.User
-
-	var user_id uuid.UUID
-	var first_name string
-	var last_name string
-	var email string
-	var phone string
-	var google_id string
-	var registration_date string
-
-	res.Scan(&user_id, &first_name, &last_name, &email, &phone, &google_id, &registration_date)
-
-	userResult.UserID = user_id
-	userResult.FirstName = first_name
-	userResult.LastName = last_name
-	userResult.Email = email
-	userResult.Phone = phone
-	userResult.GoogleID = google_id
-	userResult.RegistrationDate = registration_date
-
-	return &userResult, nil
 }

@@ -1,41 +1,31 @@
 package routes
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
+	budgetService "github.com/lakshay35/finlit-backend/services/budget"
 	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
 
-type budget struct {
-	BudgetName string `json:"budgetName"`
-}
-
-type budgetResponse struct {
-	BudgetName string    `json:"budgetName"`
-	OwnerID    uuid.UUID `json:"ownerID"`
-	BudgetID   uuid.UUID `json:"budgetID"`
-}
-
 // CreateBudget ...
 // @Summary Create a budget
 // @Description Creates a budget with requesting user as owner
+// @Tags budget
 // @Accept  json
-// @Param id path string true "Expense ID (UUID)"
 // @Produce  json
-// @Param budget body budget true "Budget body needed to create budget"
+// @Param budget body models.Budget true "Budget body needed to create budget"
+// @Security ApiKeyAuth
 // @Success 200 {object} models.Expense
-// @Failure 403
+// @Failure 403 {object} models.Error
+// @Failure 400 {object} models.Error
+// @Failure 409 {object} models.Error
 // @Router /budget/create [post]
 func CreateBudget(c *gin.Context) {
-	res := budget{}
-	err := parseBudget(c, &res)
+	res := models.Budget{}
+	err := budgetService.ParseBudget(c, &res)
 	if err != nil || res.BudgetName == "" {
 		requests.ThrowError(c, http.StatusBadRequest, "Error parsing body")
 		return
@@ -49,7 +39,7 @@ func CreateBudget(c *gin.Context) {
 
 	userObj := user.(models.User)
 
-	if doesBudgetExist(userObj.UserID, res.BudgetName) {
+	if budgetService.DoesBudgetExist(userObj.UserID, res.BudgetName) {
 		requests.ThrowError(c, http.StatusConflict, "Budget named "+res.BudgetName+" already exists")
 		return
 	}
@@ -72,19 +62,18 @@ func CreateBudget(c *gin.Context) {
 
 	connection.Commit()
 
-	c.JSON(201, gin.H{
-		"message": "Successfully Created Budget",
-		"data":    getBudget(userObj.UserID, res.BudgetName),
-	})
+	c.JSON(201, budgetService.GetBudget(userObj.UserID, res.BudgetName))
 }
 
+// GetBudgets ...
 // @Summary Get Budgets
 // @Description Gets a list of all budgets current user is a part of
+// @Tags budget
 // @Accept  json
-// @Param id path string true "Expense ID (UUID)"
 // @Produce  json
-// @Success 200 {object} []budgetResponse
-// @Failure 403
+// @Security ApiKeyAuth
+// @Success 200 {array} models.Budget
+// @Failure 403 {object} models.Error
 // @Router /budget/get [post]
 func GetBudgets(c *gin.Context) {
 	connection := database.GetConnection()
@@ -113,102 +102,14 @@ func GetBudgets(c *gin.Context) {
 		return
 	}
 
-	var result []budgetResponse = make([]budgetResponse, 0)
-
-	var budget_name string
-	var budget_id uuid.UUID
-	var owner_id uuid.UUID
+	var result []models.Budget = make([]models.Budget, 0)
 
 	for res.Next() {
-		var temp budgetResponse
-		res.Scan(&budget_id, &budget_name, &owner_id)
-		temp.BudgetID = budget_id
-		temp.BudgetName = budget_name
-		temp.OwnerID = owner_id
+		var temp models.Budget
+		res.Scan(&temp.BudgetID, &temp.BudgetName, &temp.OwnerID)
 		// Appends the item to the result
 		result = append(result, temp)
 	}
 
-	c.JSON(200, gin.H{
-		"message": "Successfully got all your budgets",
-		"data":    result,
-	})
-}
-
-// getBudget ...
-// Gets budget from db based
-// on given params
-func getBudget(userID uuid.UUID, budgetName string) budgetResponse {
-	connection := database.GetConnection()
-	defer connection.Commit()
-
-	query := "SELECT * FROM budgets WHERE owner_id = $1 AND budget_name = $2"
-
-	stmt, err := connection.Prepare(query)
-
-	if err != nil {
-		panic("Something went wrong when preparing query to get budget")
-	}
-
-	rows, err := stmt.Query(userID, budgetName)
-
-	if err != nil || !rows.Next() {
-		fmt.Println(err.Error())
-		return budgetResponse{}
-	}
-
-	var res budgetResponse
-	var budget_id uuid.UUID
-	var owner_id uuid.UUID
-	var budget_name string
-
-	rows.Scan(&budget_id, &owner_id, &budget_name)
-
-	res.BudgetID = budget_id
-	res.OwnerID = userID
-	res.BudgetName = budgetName
-
-	return res
-}
-
-// doesBudgetExist ...
-// Checks if a budget exists
-func doesBudgetExist(UserID uuid.UUID, budgetName string) bool {
-	connection := database.GetConnection()
-	defer connection.Commit()
-
-	query := "SELECT * FROM budgets WHERE owner_id = $1 AND budget_name = $2"
-
-	stmt, err := connection.Prepare(query)
-
-	if err != nil {
-		return false
-	}
-
-	res, err := stmt.Query(UserID, budgetName)
-
-	if err != nil {
-		panic(err.Error())
-	}
-	return res.Next()
-}
-
-// parseBudget ...
-// Parses body to budget{} type
-// Throws error if body does not match
-func parseBudget(c *gin.Context, res *budget) error {
-	jsonData, err := ioutil.ReadAll(c.Request.Body)
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = json.Unmarshal(jsonData, &res)
-
-	if err != nil {
-		requests.ThrowError(c, 400, "request body structure match error")
-		return err
-	}
-
-	return nil
+	c.JSON(http.StatusOK, result)
 }

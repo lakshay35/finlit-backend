@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	environment "github.com/lakshay35/finlit-backend/services/environment"
 	"github.com/plaid/plaid-go/plaid"
 )
 
@@ -22,11 +23,11 @@ var (
 )
 
 func init() {
-	PLAID_CLIENT_ID = GetEnvVariable("PLAID_CLIENT_ID")
-	PLAID_SECRET = GetEnvVariable("PLAID_SECRET")
-	PLAID_ENV = GetEnvVariable("PLAID_ENV")
-	PLAID_PRODUCTS = GetEnvVariable("PLAID_PRODUCTS")
-	PLAID_COUNTRY_CODES = GetEnvVariable("PLAID_COUNTRY_CODES")
+	PLAID_CLIENT_ID = environment.GetEnvVariable("PLAID_CLIENT_ID")
+	PLAID_SECRET = environment.GetEnvVariable("PLAID_SECRET")
+	PLAID_ENV = environment.GetEnvVariable("PLAID_ENV")
+	PLAID_PRODUCTS = environment.GetEnvVariable("PLAID_PRODUCTS")
+	PLAID_COUNTRY_CODES = environment.GetEnvVariable("PLAID_COUNTRY_CODES")
 	PLAID_REDIRECT_URI = ""
 }
 

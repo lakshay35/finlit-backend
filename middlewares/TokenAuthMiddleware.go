@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lakshay35/finlit-backend/routes"
+	userService "github.com/lakshay35/finlit-backend/services/user"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 	"google.golang.org/api/oauth2/v1"
 )
@@ -23,7 +23,7 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 		token := c.Request.Header.Get("Authorization")
 
 		if token == "" {
-			requests.ThrowError(c, 403, "API token required")
+			requests.ThrowError(c, 403, "API token required. Pass in 'Authorization' header")
 			return
 		}
 
@@ -41,12 +41,12 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 
 		// Bypasses user enrichment when a user is being registered
 		if !strings.HasSuffix(c.Request.RequestURI, "/user/register") && !strings.HasSuffix(c.Request.RequestURI, "/user/profile") {
-			user, err := routes.GetUser(tokenInfo.UserId)
+			user, err := userService.GetUser(tokenInfo.UserId)
 
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"message": "User not registered. Make sure you register at /user/register before you make any other requests",
-					"error":   true,
+					"reason": "User not registered. Make sure you register at /user/register before you make any other requests",
+					"error":  true,
 				})
 
 				return

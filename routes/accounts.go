@@ -9,7 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 	uuid "github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
-	"github.com/lakshay35/finlit-backend/services"
+	accountsService "github.com/lakshay35/finlit-backend/services/account"
+	plaidService "github.com/lakshay35/finlit-backend/services/plaid"
 	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 	"github.com/plaid/plaid-go/plaid"
@@ -18,10 +19,13 @@ import (
 // GetAccountInformation ...
 // @Summary Get Get Account Information
 // @Description Gets account information based on access token
+// @Tags account
 // @Accept  json
 // @Param account body Account true "Account payload to get informaion on"
 // @Produce  json
-// @Success 200 {object} models.Expense
+// @Security ApiKeyAuth
+// @Success 200 {object} models.PlaidAccount
+// @Failure  400 {object} models.Error
 // @Router /account/get-account-details [get]
 func GetAccountInformation(c *gin.Context) {
 
@@ -33,9 +37,9 @@ func GetAccountInformation(c *gin.Context) {
 		return
 	}
 
-	institutional_id, access_token := getExternalAccount(json.ExternalAccountID)
+	institutionalID, accessToken := accountsService.GetExternalAccount(json.ExternalAccountID)
 
-	response, err := services.PlaidClient().GetAccounts(access_token)
+	response, err := plaidService.PlaidClient().GetAccounts(accessToken)
 
 	if err != nil {
 		panic(err)
@@ -44,41 +48,47 @@ func GetAccountInformation(c *gin.Context) {
 	var account plaid.Account
 
 	for _, act := range response.Accounts {
-		if strings.EqualFold(act.AccountID, institutional_id) {
+		if strings.EqualFold(act.AccountID, institutionalID) {
 			account = act
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Successfully retrieved accounts",
-		"data":    account,
-	})
+	c.JSON(http.StatusOK, account)
 }
 
 // GetCurrentBalances ...
 // @Summary Get Current A/c Balances
 // @Description Retrieves live account balances for all accounts attached to an external account registratiom
+// @Tags account
 // @Accept  json
 // @Produce  json
+// @Security ApiKeyAuth
+// @Success 200 {array} models.PlaidGetBalancesResponse
+// @Failure  400 {object} models.Error
 // @Router /account/live-balances [get]
 func GetCurrentBalances(c *gin.Context) {
-	response, err := services.PlaidClient().GetBalances("accessToken")
+	response, err := plaidService.PlaidClient().GetBalances("accessToken")
 	if err != nil {
-		panic(err)
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			err.Error(),
+		)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"accounts": response.Accounts,
-	})
+	c.JSON(http.StatusOK, response.Accounts)
 }
 
 // GetTransactions ...
 // @Summary Get Transactions
 // @Description Gets all transactions for the  past 30 days
+// @Tags account
 // @Accept  json
 // @Produce  json
-// @Param id body Account true "Account payload to identify transactions with"
-// @Failure 403
+// @Param body body Account true "Account payload to identify transactions with"
+// @Security ApiKeyAuth
+// @Success 200 {array} models.PlaidTransaction
+// @Failure 403 {object} models.Error
 // @Router /account/transactions [get]
 func GetTransactions(c *gin.Context) {
 	var json Account
@@ -88,9 +98,9 @@ func GetTransactions(c *gin.Context) {
 	endDate := time.Now().Local().Format("2006-01-02")
 	startDate := time.Now().Local().Add(-30 * 24 * time.Hour).Format("2006-01-02")
 
-	institutional_id, access_token := getExternalAccount(json.ExternalAccountID)
+	institutionalID, accessToken := accountsService.GetExternalAccount(json.ExternalAccountID)
 
-	response, err := services.PlaidClient().GetTransactions(access_token, startDate, endDate)
+	response, err := plaidService.PlaidClient().GetTransactions(accessToken, startDate, endDate)
 
 	if err != nil {
 		panic(err)
@@ -99,15 +109,12 @@ func GetTransactions(c *gin.Context) {
 	var transactions []plaid.Transaction
 
 	for _, tx := range response.Transactions {
-		if strings.EqualFold(tx.AccountID, institutional_id) {
+		if strings.EqualFold(tx.AccountID, institutionalID) {
 			transactions = append(transactions, tx)
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Successfully retrieved transactions",
-		"data":    transactions,
-	})
+	c.JSON(http.StatusOK, transactions)
 }
 
 // LinkTokenPayload ...
@@ -119,27 +126,27 @@ type LinkTokenPayload struct {
 // Creates link token
 // @Summary Create Link Token
 // @Description Creates a link token to setup UI for generating public tokens
+// @Tags account
 // @Accept  json
 // @Param id path string true "Expense ID (UUID)"
 // @Produce  json
+// @Security ApiKeyAuth
 // @Success 200 {object} LinkTokenPayload
+// @Failure 400 {object} models.Error
 // @Router /budget/create [post]
 func CreateLinkToken(c *gin.Context) {
-	linkToken, err := linkTokenCreate(nil)
+	linkToken, err := accountsService.LinkTokenCreate(nil)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-			"error":   true,
-		})
-
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			err.Error(),
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Successsfully created link token",
-		"data": LinkTokenPayload{
-			LinkToken: linkToken,
-		},
+	c.JSON(http.StatusOK, LinkTokenPayload{
+		LinkToken: linkToken,
 	})
 }
 
@@ -152,72 +159,23 @@ func (httpError *httpError) Error() string {
 	return httpError.error
 }
 
-// linkTokenCreate creates a link token using the specified parameters
-func linkTokenCreate(
-	paymentInitiation *plaid.PaymentInitiation,
-) (string, *httpError) {
-	countryCodes := strings.Split(services.PLAID_COUNTRY_CODES, ",")
-	products := strings.Split(services.PLAID_PRODUCTS, ",")
-	redirectURI := services.PLAID_REDIRECT_URI
-	configs := plaid.LinkTokenConfigs{
-		User: &plaid.LinkTokenUser{
-			// This should correspond to a unique id for the current user.
-			ClientUserID: "user-id",
-		},
-		ClientName:        "Plaid Quickstart",
-		Products:          products,
-		CountryCodes:      countryCodes,
-		Language:          "en",
-		RedirectUri:       redirectURI,
-		PaymentInitiation: paymentInitiation,
-	}
-
-	resp, err := services.PlaidClient().CreateLinkToken(configs)
-	if err != nil {
-		return "", &httpError{
-			errorCode: http.StatusBadRequest,
-			error:     err.Error(),
-		}
-	}
-	return resp.LinkToken, nil
-}
-
-// GetAccountAccessToken ...
-// Get access token for an account based
-// on accountID
-func getAccoubtAccessToken(accountID uuid.UUID) string {
-	connection := database.GetConnection()
-
-	query := "SELECT access_token FROM external_accounts WHERE external_account_id = $1"
-
-	stmt, err := connection.Prepare(query)
-
-	if err != nil {
-		panic("Error preparing statement while getting access token for accountID " + accountID.String())
-	}
-
-	var access_token string
-
-	stmt.QueryRow(accountID).Scan(&access_token)
-
-	return access_token
-}
-
 // Account ...
 // Bank Account Integration Entity
 type Account struct {
-	ExternalAccountID uuid.UUID `json:"externalAccountID"`
-	AccountName       string    `json:"accountName,omitempty"`
+	ExternalAccountID uuid.UUID `json:"external_account_id"`
+	AccountName       string    `json:"account_name,omitempty"`
 }
 
 // GetAllAccounts ...
-// Gets all accounts a user has
 // @Summary Get all registered external accounts
 // @Description Gets a list of all external accounts registered via Plaid
+// @Tags account
 // @Accept  json
 // @Produce  json
-// @Success 200 {object} []Account
-// @Failure 403,404
+// @Security ApiKeyAuth
+// @Success 200 {array} Account
+// @Failure 403 {object} models.Error
+// @Failure 404 {object} models.Error
 // @Router /account/get [get]
 func GetAllAccounts(c *gin.Context) {
 	connection := database.GetConnection()
@@ -243,28 +201,18 @@ func GetAllAccounts(c *gin.Context) {
 	var accounts []Account = make([]Account, 0)
 
 	for rows.Next() {
-		var external_account_id string
-		var account_name string
+		var temp Account
 
-		rows.Scan(&account_name, &external_account_id)
-
-		id := uuid.MustParse(external_account_id)
+		rows.Scan(&temp.AccountName, &temp.ExternalAccountID)
 
 		if err != nil {
 			panic(err)
 		}
-		act := Account{
-			ExternalAccountID: id,
-			AccountName:       account_name,
-		}
 
-		accounts = append(accounts, act)
+		accounts = append(accounts, temp)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Sucessfully retrieved accounts",
-		"data":    accounts,
-	})
+	c.JSON(http.StatusOK, accounts)
 }
 
 type tokenPayload struct {
@@ -272,16 +220,15 @@ type tokenPayload struct {
 }
 
 // RegisterAccessToken ...
-// Exchanges public token for a
-// permanent access token and stores
-// it in the database
 // @Summary Register Access Token
 // @Description Creates a permanent access token based on public token
+// @Tags account
 // @Accept  json
-// @Param payload body tokenPayload true "Token Payload for registering access token"
+// @Param body body tokenPayload true "Token Payload for registering access token"
 // @Produce  json
-// @Success 201 {object} models.Expense
-// @Failure 403
+// @Security ApiKeyAuth
+// @Success 201
+// @Failure 403 {object} models.Error
 // @Router /account/register-token [post]
 func RegisterAccessToken(c *gin.Context) {
 	var json tokenPayload
@@ -291,7 +238,7 @@ func RegisterAccessToken(c *gin.Context) {
 		panic("Unable to parse tokenpayload '/account/register'")
 	}
 
-	response, err := services.PlaidClient().ExchangePublicToken(json.Token)
+	response, err := plaidService.PlaidClient().ExchangePublicToken(json.Token)
 	if err != nil {
 		requests.ThrowError(c, http.StatusBadRequest, err.Error())
 		return
@@ -320,7 +267,7 @@ func RegisterAccessToken(c *gin.Context) {
 		panic("Something went wrong while preparing query")
 	}
 
-	accounts := getAccountsForAccessToken(accessToken)
+	accounts := accountsService.GetAccountsForAccessToken(accessToken)
 
 	for _, act := range accounts {
 		_, err = stmt.Exec(act.AccountID, accessToken, act.OfficialName+" "+act.Name, userObj.UserID)
@@ -330,43 +277,6 @@ func RegisterAccessToken(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Successfully registered permanent access token",
-		"data":    nil,
-	})
+	c.JSON(http.StatusCreated, nil)
 
-}
-
-// getAccountsForAccessToken
-// gets account tied to access token
-// from Plaid APIS
-func getAccountsForAccessToken(accessToken string) []plaid.Account {
-	accounts, err := services.PlaidClient().GetAccounts(accessToken)
-
-	if err != nil {
-		panic("Something went wrong while getting accounts from plaid")
-	}
-
-	return accounts.Accounts
-}
-
-func getExternalAccount(accountID uuid.UUID) (string, string) {
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := "SELECT institutional_id, access_token FROM external_accounts WHERE external_account_id = $1"
-
-	stmt, err := connection.Prepare(query)
-
-	if err != nil {
-		panic(err)
-	}
-
-	var institutional_id string
-	var access_token string
-
-	stmt.QueryRow(accountID).Scan(&institutional_id, &access_token)
-
-	return institutional_id, access_token
 }

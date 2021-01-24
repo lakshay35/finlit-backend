@@ -6,18 +6,23 @@ import (
 	"github.com/gin-gonic/gin"
 	uuid "github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
+	expenseService "github.com/lakshay35/finlit-backend/services/expense"
 	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
 
 // AddExpense ..
-// @Summary Adds an expense to the database
+// @Summary Adds an expense to the given budget
 // @Description Add expense to an existing budget
+// @Tags expense
 // @Accept  json
 // @Produce  json
 // @Param body body models.Expense true "Expense payload representing entity to be created"
+// @Security ApiKeyAuth
 // @Success 201 {object} models.Expense
-// @Failure 403,400,401
+// @Failure 403 {object} models.Error
+// @Failure 400 {object} models.Error
+// @Failure 401 {object} models.Error
 // @Router /expense/add [post]
 func AddExpense(c *gin.Context) {
 
@@ -28,7 +33,7 @@ func AddExpense(c *gin.Context) {
 		requests.ThrowError(c, http.StatusBadRequest, "Payload does not match")
 	}
 
-	expenseChargeCycleID, err := getExpenseChargeCycleID(expense.ExpenseChargeCycle)
+	expenseChargeCycleID, err := expenseService.GetExpenseChargeCycleID(expense.ExpenseChargeCycle)
 
 	if err != nil {
 		requests.ThrowError(
@@ -41,7 +46,7 @@ func AddExpense(c *gin.Context) {
 
 	user := requests.GetUserFromContext(c)
 
-	if !isUserAdmin(expense.BudgetID, user.UserID) && !isUserOwner(expense.BudgetID, user.UserID) {
+	if !expenseService.IsUserAdmin(expense.BudgetID, user.UserID) && !expenseService.IsUserOwner(expense.BudgetID, user.UserID) {
 		requests.ThrowError(
 			c,
 			http.StatusUnauthorized,
@@ -59,39 +64,33 @@ func AddExpense(c *gin.Context) {
 
 	stmt := database.PrepareStatement(connection, query)
 
-	var expense_id uuid.UUID
-
 	err = stmt.QueryRow(
 		expense.BudgetID,
 		expense.ExpenseName,
 		expense.ExpenseValue,
 		expense.ExpenseDescription,
 		expenseChargeCycleID,
-	).Scan(&expense_id)
+	).Scan(&expense.ExpenseID)
 
 	if err != nil {
 		panic("Something went wrong while adding expense")
 	}
 
-	expense.ExpenseID = expense_id
-
-	c.JSON(
-		http.StatusCreated,
-		gin.H{
-			"message": "Successfully created expense",
-			"data":    expense,
-		},
-	)
+	c.JSON(http.StatusCreated, expense)
 }
 
 // GetAllExpenses ..
 // @Summary Gets expenses for budget
 // @Description Gets a list of all expenses tied to a given budget
+// @Tags expense
 // @Accept  json
 // @Produce  json
 // @Param budgetID header string true "Budget ID to get expenses against"
-// @Success 200 {object} []models.Expense
-// @Failure 403,400,401
+// @Security ApiKeyAuth
+// @Success 200 {array} models.Expense
+// @Failure 403 {object} models.Error
+// @Failure 400 {object} models.Error
+// @Failure 401 {object} models.Error
 // @Router /expense/get [get]
 func GetAllExpenses(c *gin.Context) {
 
@@ -108,7 +107,7 @@ func GetAllExpenses(c *gin.Context) {
 
 	user := requests.GetUserFromContext(c)
 
-	if !isUserViewer(budgetID, user.UserID) && !isUserOwner(budgetID, user.UserID) {
+	if !expenseService.IsUserAdmin(budgetID, user.UserID) && !expenseService.IsUserOwner(budgetID, user.UserID) {
 		requests.ThrowError(
 			c,
 			http.StatusUnauthorized,
@@ -153,24 +152,23 @@ func GetAllExpenses(c *gin.Context) {
 		expenses = append(expenses, expense)
 	}
 
-	c.JSON(
-		http.StatusOK,
-		gin.H{
-			"message": "Successfully retrieved all expenses",
-			"data":    expenses,
-		},
-	)
+	c.JSON(http.StatusOK, expenses)
 
 }
 
 // UpdateExpense ..
 // @Summary Adds an expense to the database
 // @Description Add expense to an existing budget
+// @Tags expense
 // @Accept  json
 // @Produce  json
 // @Param body body models.Expense true "Expense payload representing entity to be updated"
+// @Security ApiKeyAuth
 // @Success 204 {object} models.Expense
-// @Failure 403,401,404,400
+// @Failure 403 {object} models.Error
+// @Failure 401 {object} models.Error
+// @Failure 404 {object} models.Error
+// @Failure 400 {object} models.Error
 // @Router /expense/update [put]
 func UpdateExpense(c *gin.Context) {
 
@@ -182,7 +180,7 @@ func UpdateExpense(c *gin.Context) {
 	}
 
 	// Ensure expense exists
-	_, err = getExpense(expense.ExpenseID)
+	_, err = expenseService.GetExpense(expense.ExpenseID)
 	if err != nil {
 		requests.ThrowError(
 			c,
@@ -195,7 +193,7 @@ func UpdateExpense(c *gin.Context) {
 	user := requests.GetUserFromContext(c)
 
 	// Ensure user is authorized to update expense
-	if !isUserOwner(expense.BudgetID, user.UserID) && !isUserAdmin(expense.BudgetID, user.UserID) {
+	if !expenseService.IsUserOwner(expense.BudgetID, user.UserID) && !expenseService.IsUserAdmin(expense.BudgetID, user.UserID) {
 		requests.ThrowError(
 			c,
 			http.StatusUnauthorized,
@@ -238,24 +236,22 @@ func UpdateExpense(c *gin.Context) {
 		)
 	}
 
-	c.JSON(
-		http.StatusNoContent,
-		gin.H{
-			"message": "Successfully updated expense",
-			"data":    expense,
-		},
-	)
+	c.JSON(http.StatusNoContent, expense)
 }
 
 // DeleteExpense ..
 // @Summary Deletes Expense
 // @Description Deletes Expense from DB based on id
+// @Tags expense
 // @Accept  json
 // @Param id path string true "Expense ID (UUID)"
 // @Produce  json
 // @Param id path string true "ID of Expense"
+// @Security ApiKeyAuth
 // @Success 204
-// @Failure 403,401,400
+// @Failure 403 {object} models.Error
+// @Failure 401 {object} models.Error
+// @Failure 400 {object} models.Error
 // @Router /expense/delete/{id} [delete]
 func DeleteExpense(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
@@ -270,12 +266,12 @@ func DeleteExpense(c *gin.Context) {
 		return
 	}
 
-	expense, err := getExpense(id)
+	expense, err := expenseService.GetExpense(id)
 
 	user := requests.GetUserFromContext(c)
 
 	// Ensure user is authorized to update expense
-	if !isUserOwner(expense.BudgetID, user.UserID) && !isUserAdmin(expense.BudgetID, user.UserID) {
+	if !expenseService.IsUserOwner(expense.BudgetID, user.UserID) && !expenseService.IsUserOwner(expense.BudgetID, user.UserID) {
 		requests.ThrowError(
 			c,
 			http.StatusUnauthorized,
@@ -303,23 +299,18 @@ func DeleteExpense(c *gin.Context) {
 			err.Error(),
 		)
 	}
-
-	c.JSON(
-		http.StatusNoContent,
-		gin.H{
-			"message": "Successfully deleted expense",
-			"data":    nil,
-		},
-	)
+	c.Status(http.StatusNoContent)
 }
 
 // GetExpenseChargeCycles ...
 // @Summary Gets a list of expense charge cycles
 // @Description Gets all the expense charge cycles available to create an expense for a budget
+// @Tags expense
 // @Accept  json
 // @Produce  json
-// @Success 200 {object} []models.ExpenseChargeCycle
-// @Failure 403
+// @Security ApiKeyAuth
+// @Success 200 {array} models.ExpenseChargeCycle
+// @Failure 403 {object} models.Error
 // @Router /expense/get-expense-charge-cycles [get]
 func GetExpenseChargeCycles(c *gin.Context) {
 	connection := database.GetConnection()
@@ -344,157 +335,5 @@ func GetExpenseChargeCycles(c *gin.Context) {
 		cycles = append(cycles, cycle)
 	}
 
-	c.JSON(
-		http.StatusOK,
-		gin.H{
-			"message": "Successfully retrieved all expense charge cycles",
-			"data":    cycles,
-		},
-	)
-
-}
-
-// getExpense
-// Gets expense based on expense_id
-func getExpense(id uuid.UUID) (*models.Expense, error) {
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := "SELECT * FROM expenses WHERE expense_id = $1"
-
-	stmt := database.PrepareStatement(connection, query)
-
-	var expense models.Expense
-
-	var expense_charge_cycle_id int
-
-	err := stmt.QueryRow(id).Scan(
-		&expense.ExpenseID,
-		&expense.BudgetID,
-		&expense.ExpenseName,
-		&expense.ExpenseValue,
-		&expense.ExpenseDescription,
-		&expense_charge_cycle_id,
-	)
-
-	unit, err := getExpenseChargeCycleName(expense_charge_cycle_id)
-
-	if err != nil {
-		panic(err)
-	}
-
-	expense.ExpenseChargeCycle = unit
-
-	if err != nil {
-		return &models.Expense{}, err
-	}
-
-	return &expense, nil
-}
-
-// isUserAdmin
-// Determines if user is an admin on the given budget
-func isUserAdmin(budgetID uuid.UUID, userID uuid.UUID) bool {
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'Full Rights')
-	AND ur.budget_id = $2`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	rows, err := stmt.Query(userID, budgetID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return rows.Next()
-}
-
-// isUserAdmin
-// Determines if user is an admin on the given budget
-func isUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'View Rights')
-	AND ur.budget_id = $2`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	rows, err := stmt.Query(userID, budgetID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return rows.Next()
-}
-
-// isUserOwner
-// Checks if user is an owner
-func isUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := `SELECT owner_id FROM budgets WHERE budget_id = $1 AND owner_id = $2`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	rows, err := stmt.Query(budgetID, userID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return rows.Next()
-}
-
-// getExpenseID
-// Gets expense charge cycle id for a given expense name
-func getExpenseChargeCycleID(expenseName string) (int, error) {
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := "SELECT expense_charge_cycle_id from expense_charge_cycles WHERE unit = $1"
-
-	stmt := database.PrepareStatement(connection, query)
-
-	var expense_charge_cycle_id int
-
-	err := stmt.QueryRow(expenseName).Scan(&expense_charge_cycle_id)
-
-	if err != nil {
-		return -1, err
-	}
-
-	return expense_charge_cycle_id, nil
-}
-
-// getExpenseChargeCycleName
-// Gets the name of an expense charge cycle based on id
-func getExpenseChargeCycleName(expenseChargeCycleID int) (string, error) {
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := "SELECT unit from expense_charge_cycles WHERE expense_charge_cycle_id = $1"
-
-	stmt := database.PrepareStatement(connection, query)
-
-	var unit string
-
-	err := stmt.QueryRow(expenseChargeCycleID).Scan(&unit)
-
-	if err != nil {
-		return "", err
-	}
-
-	return unit, nil
+	c.JSON(http.StatusOK, cycles)
 }

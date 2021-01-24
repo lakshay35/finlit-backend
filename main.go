@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/lakshay35/finlit-backend/docs"
-	"github.com/lakshay35/finlit-backend/services"
+	services "github.com/lakshay35/finlit-backend/services/environment"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -22,11 +22,6 @@ func init() {
 	// Initialize main.go
 }
 
-type account struct {
-	UserID      string `json:"accountId"`
-	AccessToken string `json:"accessToken"`
-}
-
 func setupSwaggerMetadata() {
 	// programmatically set swagger info
 	docs.SwaggerInfo.Title = "FinLit API"
@@ -37,64 +32,20 @@ func setupSwaggerMetadata() {
 	docs.SwaggerInfo.Schemes = []string{"http", "https"}
 }
 
-// var iv = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 05}
-
-// func Encrypt(text string) string {
-// 	block, err := aes.NewCipher([]byte(ENCRYPTION_KEY))
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	plaintext := []byte(text)
-// 	cfb := cipher.NewCFBEncrypter(block, iv)
-// 	ciphertext := make([]byte, len(plaintext))
-// 	cfb.XORKeyStream(ciphertext, plaintext)
-// 	return encodeBase64(text)
-// }
-
-// func Decrypt(text string) string {
-// 	block, err := aes.NewCipher([]byte(ENCRYPTION_KEY))
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	ciphertext := decodeBase64(text)
-// 	cfb := cipher.NewCFBEncrypter(block, iv)
-// 	plaintext := make([]byte, len(ciphertext))
-// 	cfb.XORKeyStream(plaintext, ciphertext)
-// 	return string(ciphertext)
-// }
-
 // @contact.name Lakshay Sharma
 // @contact.url sharmalakshay.com
 // @contact.email lakshay35@gmail.com
-
-// @query.collection.format multi
 
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
 
-// @securitydefinitions.oauth2.application OAuth2Application
-// @tokenUrl https://example.com/oauth/token
-// @scope.write Grants write access
-// @scope.admin Grants read and write access to administrative information
+// @query.collection.format multi
 
-// @securitydefinitions.oauth2.implicit OAuth2Implicit
-// @authorizationurl https://example.com/oauth/authorize
-// @scope.write Grants write access
-// @scope.admin Grants read and write access to administrative information
+// @securityDefinitions.apikey Google AccessToken
+// @in header
+// @name Authorization
 
-// @securitydefinitions.oauth2.password OAuth2Password
-// @tokenUrl https://example.com/oauth/token
-// @scope.read Grants read access
-// @scope.write Grants write access
-// @scope.admin Grants read and write access to administrative information
-
-// @securitydefinitions.oauth2.accessCode OAuth2AccessCode
-// @tokenUrl https://example.com/oauth/token
-// @authorizationurl https://example.com/oauth/authorize
-// @scope.admin Grants read and write access to administrative information
-
-// @x-extension-openapi {"example": "value on a json format"}
 func main() {
 
 	setupSwaggerMetadata()
@@ -115,7 +66,6 @@ func main() {
 		MaxAge: 12 * time.Hour,
 	}))
 
-	// @Failure 403,404 {object} httputil.HTTPError
 	api := r.Group("/api")
 	{
 		api.Use(middlewares.TokenAuthMiddleware())

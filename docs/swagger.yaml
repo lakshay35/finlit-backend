@@ -1,4 +1,20 @@
 definitions:
+  models.Budget:
+    properties:
+      budget_id:
+        type: string
+      budget_name:
+        type: string
+      owner_id:
+        type: string
+    type: object
+  models.Error:
+    properties:
+      error:
+        type: boolean
+      reason:
+        type: string
+    type: object
   models.Expense:
     properties:
       budget_id:
@@ -21,6 +37,126 @@ definitions:
       unit:
         type: string
     type: object
+  models.PlaidAccount:
+    properties:
+      account_id:
+        type: string
+      balances:
+        $ref: '#/definitions/models.PlaidAccountBalances'
+      mask:
+        type: string
+      name:
+        type: string
+      official_name:
+        type: string
+      subtype:
+        type: string
+      type:
+        type: string
+      verification_status:
+        type: string
+    type: object
+  models.PlaidAccountBalances:
+    properties:
+      available:
+        type: number
+      current:
+        type: number
+      iso_currency_code:
+        type: string
+      limit:
+        type: number
+      unofficial_currency_code:
+        type: string
+    type: object
+  models.PlaidGetBalancesResponse:
+    properties:
+      accounts:
+        items:
+          $ref: '#/definitions/models.PlaidAccount'
+        type: array
+      request_id:
+        type: string
+    type: object
+  models.PlaidLocation:
+    properties:
+      address:
+        type: string
+      city:
+        type: string
+      country:
+        type: string
+      lat:
+        type: number
+      lon:
+        type: number
+      postal_code:
+        type: string
+      region:
+        type: string
+      store_number:
+        type: string
+    type: object
+  models.PlaidPaymentMeta:
+    properties:
+      by_order_of:
+        type: string
+      payee:
+        type: string
+      payer:
+        type: string
+      payment_method:
+        type: string
+      payment_processor:
+        type: string
+      ppd_id:
+        type: string
+      reason:
+        type: string
+      reference_number:
+        type: string
+    type: object
+  models.PlaidTransaction:
+    properties:
+      account_id:
+        type: string
+      account_owner:
+        type: string
+      amount:
+        type: number
+      authorized_date:
+        type: string
+      category:
+        items:
+          type: string
+        type: array
+      category_id:
+        type: string
+      date:
+        type: string
+      iso_currency_code:
+        type: string
+      location:
+        $ref: '#/definitions/models.PlaidLocation'
+      name:
+        type: string
+      payment_channel:
+        type: string
+      payment_meta:
+        $ref: '#/definitions/models.PlaidPaymentMeta'
+      pending:
+        type: boolean
+      pending_transaction_id:
+        type: string
+      transaction_code:
+        type: string
+      transaction_id:
+        type: string
+      transaction_type:
+        type: string
+      unofficial_currency_code:
+        type: string
+    type: object
   models.User:
     properties:
       email:
@@ -40,28 +176,14 @@ definitions:
     type: object
   routes.Account:
     properties:
-      accountName:
+      account_name:
         type: string
-      externalAccountID:
+      external_account_id:
         type: string
     type: object
   routes.LinkTokenPayload:
     properties:
       linkToken:
-        type: string
-    type: object
-  routes.budget:
-    properties:
-      budgetName:
-        type: string
-    type: object
-  routes.budgetResponse:
-    properties:
-      budgetID:
-        type: string
-      budgetName:
-        type: string
-      ownerID:
         type: string
     type: object
   routes.tokenPayload:
@@ -90,10 +212,18 @@ paths:
               $ref: '#/definitions/routes.Account'
             type: array
         "403":
-          description: ""
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
         "404":
-          description: ""
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Get all registered external accounts
+      tags:
+      - account
   /account/get-account-details:
     get:
       consumes:
@@ -112,8 +242,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Expense'
+            $ref: '#/definitions/models.PlaidAccount'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Get Get Account Information
+      tags:
+      - account
   /account/live-balances:
     get:
       consumes:
@@ -122,7 +260,22 @@ paths:
         external account registratiom
       produces:
       - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.PlaidGetBalancesResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Get Current A/c Balances
+      tags:
+      - account
   /account/register-token:
     post:
       consumes:
@@ -131,7 +284,7 @@ paths:
       parameters:
       - description: Token Payload for registering access token
         in: body
-        name: payload
+        name: body
         required: true
         schema:
           $ref: '#/definitions/routes.tokenPayload'
@@ -139,12 +292,16 @@ paths:
       - application/json
       responses:
         "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.Expense'
-        "403":
           description: ""
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Register Access Token
+      tags:
+      - account
   /account/transactions:
     get:
       consumes:
@@ -153,54 +310,10 @@ paths:
       parameters:
       - description: Account payload to identify transactions with
         in: body
-        name: id
+        name: body
         required: true
         schema:
           $ref: '#/definitions/routes.Account'
-      produces:
-      - application/json
-      responses:
-        "403":
-          description: ""
-      summary: Get Transactions
-  /budget/create:
-    post:
-      consumes:
-      - application/json
-      description: Creates a budget with requesting user as owner
-      parameters:
-      - description: Expense ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Budget body needed to create budget
-        in: body
-        name: budget
-        required: true
-        schema:
-          $ref: '#/definitions/routes.budget'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Expense'
-        "403":
-          description: ""
-      summary: Create a budget
-  /budget/get:
-    post:
-      consumes:
-      - application/json
-      description: Gets a list of all budgets current user is a part of
-      parameters:
-      - description: Expense ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -208,11 +321,76 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/routes.budgetResponse'
+              $ref: '#/definitions/models.PlaidTransaction'
             type: array
         "403":
-          description: ""
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Transactions
+      tags:
+      - account
+  /budget/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a budget with requesting user as owner
+      parameters:
+      - description: Budget body needed to create budget
+        in: body
+        name: budget
+        required: true
+        schema:
+          $ref: '#/definitions/models.Budget'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Expense'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a budget
+      tags:
+      - budget
+  /budget/get:
+    post:
+      consumes:
+      - application/json
+      description: Gets a list of all budgets current user is a part of
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Budget'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Get Budgets
+      tags:
+      - budget
   /expense/add:
     post:
       consumes:
@@ -233,12 +411,22 @@ paths:
           schema:
             $ref: '#/definitions/models.Expense'
         "400":
-          description: ""
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
         "401":
-          description: ""
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.Error'
         "403":
-          description: ""
-      summary: Adds an expense to the database
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
+      summary: Adds an expense to the given budget
+      tags:
+      - expense
   /expense/delete/{id}:
     delete:
       consumes:
@@ -261,12 +449,22 @@ paths:
         "204":
           description: ""
         "400":
-          description: ""
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
         "401":
-          description: ""
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.Error'
         "403":
-          description: ""
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Deletes Expense
+      tags:
+      - expense
   /expense/get:
     get:
       consumes:
@@ -288,12 +486,22 @@ paths:
               $ref: '#/definitions/models.Expense'
             type: array
         "400":
-          description: ""
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
         "401":
-          description: ""
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.Error'
         "403":
-          description: ""
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Gets expenses for budget
+      tags:
+      - expense
   /expense/get-expense-charge-cycles:
     get:
       consumes:
@@ -310,8 +518,14 @@ paths:
               $ref: '#/definitions/models.ExpenseChargeCycle'
             type: array
         "403":
-          description: ""
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Gets a list of expense charge cycles
+      tags:
+      - expense
   /expense/update:
     put:
       consumes:
@@ -332,14 +546,49 @@ paths:
           schema:
             $ref: '#/definitions/models.Expense'
         "400":
-          description: ""
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
         "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
+      summary: Adds an expense to the database
+      tags:
+      - expense
+  /role/add-user-role-to-budget:
+    post:
+      consumes:
+      - application/json
+      description: Registers a user profile in the finlit database
+      produces:
+      - application/json
+      responses:
+        "200":
           description: ""
         "403":
-          description: ""
-        "404":
-          description: ""
-      summary: Adds an expense to the database
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
+      summary: Registers user to the database
+      tags:
+      - role
   /user/get:
     get:
       consumes:
@@ -354,10 +603,18 @@ paths:
           schema:
             $ref: '#/definitions/models.User'
         "403":
-          description: ""
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
         "404":
-          description: ""
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Gets user from the database
+      tags:
+      - user
   /user/register:
     post:
       consumes:
@@ -369,50 +626,27 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/routes.Account'
-            type: array
+            $ref: '#/definitions/models.User'
         "403":
-          description: ""
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
         "409":
-          description: ""
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - ApiKeyAuth: []
       summary: Registers user to the database
+      tags:
+      - user
 securityDefinitions:
   ApiKeyAuth:
     in: header
     name: Authorization
     type: apiKey
-  OAuth2AccessCode:
-    authorizationUrl: https://example.com/oauth/authorize
-    flow: accessCode
-    scopes:
-      admin: ' Grants read and write access to administrative information'
-    tokenUrl: https://example.com/oauth/token
-    type: oauth2
-  OAuth2Application:
-    authorizationUrl: ""
-    flow: application
-    scopes:
-      admin: ' Grants read and write access to administrative information'
-      write: ' Grants write access'
-    tokenUrl: https://example.com/oauth/token
-    type: oauth2
-  OAuth2Implicit:
-    authorizationUrl: https://example.com/oauth/authorize
-    flow: implicit
-    scopes:
-      admin: ' Grants read and write access to administrative information'
-      write: ' Grants write access'
-    type: oauth2
-  OAuth2Password:
-    authorizationUrl: ""
-    flow: password
-    scopes:
-      admin: ' Grants read and write access to administrative information'
-      read: ' Grants read access'
-      write: ' Grants write access'
-    tokenUrl: https://example.com/oauth/token
-    type: oauth2
+  Google AccessToken:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
-x-extension-openapi:
-  example: value on a json format

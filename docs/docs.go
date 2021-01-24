@@ -30,12 +30,20 @@ var doc = `{
     "paths": {
         "/account/get": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Gets a list of all external accounts registered via Plaid",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "account"
                 ],
                 "summary": "Get all registered external accounts",
                 "responses": {
@@ -49,22 +57,36 @@ var doc = `{
                         }
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "404": {
-                        "description": ""
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/account/get-account-details": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Gets account information based on access token",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "account"
                 ],
                 "summary": "Get Get Account Information",
                 "parameters": [
@@ -82,7 +104,13 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Expense"
+                            "$ref": "#/definitions/models.PlaidAccount"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
                         }
                     }
                 }
@@ -90,6 +118,11 @@ var doc = `{
         },
         "/account/live-balances": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Retrieves live account balances for all accounts attached to an external account registratiom",
                 "consumes": [
                     "application/json"
@@ -97,11 +130,36 @@ var doc = `{
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Get Current A/c Balances"
+                "tags": [
+                    "account"
+                ],
+                "summary": "Get Current A/c Balances",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.PlaidGetBalancesResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
             }
         },
         "/account/register-token": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Creates a permanent access token based on public token",
                 "consumes": [
                     "application/json"
@@ -109,11 +167,14 @@ var doc = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "account"
+                ],
                 "summary": "Register Access Token",
                 "parameters": [
                     {
                         "description": "Token Payload for registering access token",
-                        "name": "payload",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -123,19 +184,24 @@ var doc = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.Expense"
-                        }
+                        "description": ""
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/account/transactions": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Gets all transactions for the  past 30 days",
                 "consumes": [
                     "application/json"
@@ -143,11 +209,14 @@ var doc = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "account"
+                ],
                 "summary": "Get Transactions",
                 "parameters": [
                     {
                         "description": "Account payload to identify transactions with",
-                        "name": "id",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -156,14 +225,31 @@ var doc = `{
                     }
                 ],
                 "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.PlaidTransaction"
+                            }
+                        }
+                    },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/budget/create": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Creates a budget with requesting user as owner",
                 "consumes": [
                     "application/json"
@@ -171,22 +257,18 @@ var doc = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "budget"
+                ],
                 "summary": "Create a budget",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Expense ID (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "description": "Budget body needed to create budget",
                         "name": "budget",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.budget"
+                            "$ref": "#/definitions/models.Budget"
                         }
                     }
                 ],
@@ -197,14 +279,34 @@ var doc = `{
                             "$ref": "#/definitions/models.Expense"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/budget/get": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Gets a list of all budgets current user is a part of",
                 "consumes": [
                     "application/json"
@@ -212,34 +314,36 @@ var doc = `{
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Get Budgets",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Expense ID (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
+                "tags": [
+                    "budget"
                 ],
+                "summary": "Get Budgets",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/routes.budgetResponse"
+                                "$ref": "#/definitions/models.Budget"
                             }
                         }
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/expense/add": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Add expense to an existing budget",
                 "consumes": [
                     "application/json"
@@ -247,7 +351,10 @@ var doc = `{
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Adds an expense to the database",
+                "tags": [
+                    "expense"
+                ],
+                "summary": "Adds an expense to the given budget",
                 "parameters": [
                     {
                         "description": "Expense payload representing entity to be created",
@@ -267,25 +374,42 @@ var doc = `{
                         }
                     },
                     "400": {
-                        "description": ""
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "401": {
-                        "description": ""
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/expense/delete/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Deletes Expense from DB based on id",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "expense"
                 ],
                 "summary": "Deletes Expense",
                 "parameters": [
@@ -309,25 +433,42 @@ var doc = `{
                         "description": ""
                     },
                     "400": {
-                        "description": ""
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "401": {
-                        "description": ""
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/expense/get": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Gets a list of all expenses tied to a given budget",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "expense"
                 ],
                 "summary": "Gets expenses for budget",
                 "parameters": [
@@ -350,25 +491,42 @@ var doc = `{
                         }
                     },
                     "400": {
-                        "description": ""
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "401": {
-                        "description": ""
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/expense/get-expense-charge-cycles": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Gets all the expense charge cycles available to create an expense for a budget",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "expense"
                 ],
                 "summary": "Gets a list of expense charge cycles",
                 "responses": {
@@ -382,19 +540,30 @@ var doc = `{
                         }
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/expense/update": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Add expense to an existing budget",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "expense"
                 ],
                 "summary": "Adds an expense to the database",
                 "parameters": [
@@ -416,28 +585,85 @@ var doc = `{
                         }
                     },
                     "400": {
-                        "description": ""
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/role/add-user-role-to-budget": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Registers a user profile in the finlit database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "role"
+                ],
+                "summary": "Registers user to the database",
+                "responses": {
+                    "200": {
                         "description": ""
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
-                    "404": {
-                        "description": ""
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/user/get": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Gets the user's profile from the finlit database",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "user"
                 ],
                 "summary": "Gets user from the database",
                 "operationId": "user-get",
@@ -449,16 +675,27 @@ var doc = `{
                         }
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "404": {
-                        "description": ""
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         },
         "/user/register": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Registers a user profile in the finlit database",
                 "consumes": [
                     "application/json"
@@ -466,28 +703,59 @@ var doc = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "user"
+                ],
                 "summary": "Registers user to the database",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/routes.Account"
-                            }
+                            "$ref": "#/definitions/models.User"
                         }
                     },
                     "403": {
-                        "description": ""
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "409": {
-                        "description": ""
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     }
                 }
             }
         }
     },
     "definitions": {
+        "models.Budget": {
+            "type": "object",
+            "properties": {
+                "budget_id": {
+                    "type": "string"
+                },
+                "budget_name": {
+                    "type": "string"
+                },
+                "owner_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Error": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "boolean"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Expense": {
             "type": "object",
             "properties": {
@@ -522,6 +790,189 @@ var doc = `{
                 }
             }
         },
+        "models.PlaidAccount": {
+            "type": "object",
+            "properties": {
+                "account_id": {
+                    "type": "string"
+                },
+                "balances": {
+                    "$ref": "#/definitions/models.PlaidAccountBalances"
+                },
+                "mask": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "official_name": {
+                    "type": "string"
+                },
+                "subtype": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "verification_status": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PlaidAccountBalances": {
+            "type": "object",
+            "properties": {
+                "available": {
+                    "type": "number"
+                },
+                "current": {
+                    "type": "number"
+                },
+                "iso_currency_code": {
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "number"
+                },
+                "unofficial_currency_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PlaidGetBalancesResponse": {
+            "type": "object",
+            "properties": {
+                "accounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.PlaidAccount"
+                    }
+                },
+                "request_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PlaidLocation": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lon": {
+                    "type": "number"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "store_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PlaidPaymentMeta": {
+            "type": "object",
+            "properties": {
+                "by_order_of": {
+                    "type": "string"
+                },
+                "payee": {
+                    "type": "string"
+                },
+                "payer": {
+                    "type": "string"
+                },
+                "payment_method": {
+                    "type": "string"
+                },
+                "payment_processor": {
+                    "type": "string"
+                },
+                "ppd_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "reference_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PlaidTransaction": {
+            "type": "object",
+            "properties": {
+                "account_id": {
+                    "type": "string"
+                },
+                "account_owner": {
+                    "type": "string"
+                },
+                "amount": {
+                    "type": "number"
+                },
+                "authorized_date": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "category_id": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "iso_currency_code": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/models.PlaidLocation"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "payment_channel": {
+                    "type": "string"
+                },
+                "payment_meta": {
+                    "$ref": "#/definitions/models.PlaidPaymentMeta"
+                },
+                "pending": {
+                    "type": "boolean"
+                },
+                "pending_transaction_id": {
+                    "type": "string"
+                },
+                "transaction_code": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "string"
+                },
+                "transaction_type": {
+                    "type": "string"
+                },
+                "unofficial_currency_code": {
+                    "type": "string"
+                }
+            }
+        },
         "models.User": {
             "type": "object",
             "properties": {
@@ -551,10 +1002,10 @@ var doc = `{
         "routes.Account": {
             "type": "object",
             "properties": {
-                "accountName": {
+                "account_name": {
                     "type": "string"
                 },
-                "externalAccountID": {
+                "external_account_id": {
                     "type": "string"
                 }
             }
@@ -563,28 +1014,6 @@ var doc = `{
             "type": "object",
             "properties": {
                 "linkToken": {
-                    "type": "string"
-                }
-            }
-        },
-        "routes.budget": {
-            "type": "object",
-            "properties": {
-                "budgetName": {
-                    "type": "string"
-                }
-            }
-        },
-        "routes.budgetResponse": {
-            "type": "object",
-            "properties": {
-                "budgetID": {
-                    "type": "string"
-                },
-                "budgetName": {
-                    "type": "string"
-                },
-                "ownerID": {
                     "type": "string"
                 }
             }
@@ -604,48 +1033,11 @@ var doc = `{
             "name": "Authorization",
             "in": "header"
         },
-        "OAuth2AccessCode": {
-            "type": "oauth2",
-            "flow": "accessCode",
-            "authorizationUrl": "https://example.com/oauth/authorize",
-            "tokenUrl": "https://example.com/oauth/token",
-            "scopes": {
-                "admin": " Grants read and write access to administrative information"
-            }
-        },
-        "OAuth2Application": {
-            "type": "oauth2",
-            "flow": "application",
-            "authorizationUrl": "",
-            "tokenUrl": "https://example.com/oauth/token",
-            "scopes": {
-                "admin": " Grants read and write access to administrative information",
-                "write": " Grants write access"
-            }
-        },
-        "OAuth2Implicit": {
-            "type": "oauth2",
-            "flow": "implicit",
-            "authorizationUrl": "https://example.com/oauth/authorize",
-            "scopes": {
-                "admin": " Grants read and write access to administrative information",
-                "write": " Grants write access"
-            }
-        },
-        "OAuth2Password": {
-            "type": "oauth2",
-            "flow": "password",
-            "authorizationUrl": "",
-            "tokenUrl": "https://example.com/oauth/token",
-            "scopes": {
-                "admin": " Grants read and write access to administrative information",
-                "read": " Grants read access",
-                "write": " Grants write access"
-            }
+        "Google AccessToken": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
-    },
-    "x-extension-openapi": {
-        "example": "value on a json format"
     }
 }`
 

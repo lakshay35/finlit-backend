@@ -2,34 +2,34 @@ package routes
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"strings"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
+	roleService "github.com/lakshay35/finlit-backend/services/role"
 	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
 
 type addRoleRequest struct {
 	Role     string    `json:"role"`
-	userID   uuid.UUID `json:"userID"`
+	UserID   uuid.UUID `json:"userID"`
 	BudgetID uuid.UUID `json:"budgetId"`
 }
 
 // AddUserRoleToBudget ...
-// Adds role to user
-// RegisterUser ...
-// registers user in the database
 // @Summary Registers user to the database
 // @Description Registers a user profile in the finlit database
+// @Tags role
 // @Accept  json
 // @Produce  json
-// @Success 200 {object} []Account
-// @Failure 403,409
-// @Router /user/register [post]
+// @Security ApiKeyAuth
+// @Success 200
+// @Failure 403 {object} models.Error
+// @Failure 409 {object} models.Error
+// @Router /role/add-user-role-to-budget [post]
 func AddUserRoleToBudget(c *gin.Context) {
 
 	user, found := c.Get("USER")
@@ -52,7 +52,7 @@ func AddUserRoleToBudget(c *gin.Context) {
 	}
 
 	// Only budget owner can add users to budget
-	if !doesUserOwnBudget(userObj.UserID, res.BudgetID) {
+	if !roleService.DoesUserOwnBudget(userObj.UserID, res.BudgetID) {
 		requests.ThrowError(c, 401, "Not enough permissions to add users to")
 	}
 
@@ -63,40 +63,11 @@ func AddUserRoleToBudget(c *gin.Context) {
 
 	stmt := database.PrepareStatement(connection, query)
 
-	_, err = stmt.Exec(res.userID, getRole(res.Role), res.BudgetID)
+	_, err = stmt.Exec(res.UserID, roleService.GetRole(res.Role), res.BudgetID)
 
 	if err != nil {
 		requests.ThrowError(c, 400, "Unknw")
 	}
-}
 
-// doesUserOwnBudget
-// Determine if given userID is
-// the owner of the given budgetID
-func doesUserOwnBudget(userID uuid.UUID, budgetID uuid.UUID) bool {
-	connection := database.GetConnection()
-	defer connection.Commit()
-
-	query := "SELECT * FROM budgets WHERE owner = $1 AND budget_id = $2"
-
-	stmt := database.PrepareStatement(connection, query)
-
-	rows, err := stmt.Query(userID, budgetID)
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return false
-	}
-
-	return rows.Next()
-
-}
-
-func getRole(role string) string {
-	switch strings.ToUpper(role) {
-	case "FULL RIGHTS":
-		return "Full Rights"
-	default:
-		return "View Rights"
-	}
+	c.Status(http.StatusOK)
 }
