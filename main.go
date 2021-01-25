@@ -36,10 +36,6 @@ func setupSwaggerMetadata() {
 // @contact.url sharmalakshay.com
 // @contact.email lakshay35@gmail.com
 
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
-
 // @query.collection.format multi
 
 // @securityDefinitions.apikey Google AccessToken

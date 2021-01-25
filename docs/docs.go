@@ -32,7 +32,7 @@ var doc = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Gets a list of all external accounts registered via Plaid",
@@ -43,7 +43,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "account"
+                    "External Accounts"
                 ],
                 "summary": "Get all registered external accounts",
                 "responses": {
@@ -75,7 +75,7 @@ var doc = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Gets account information based on access token",
@@ -86,7 +86,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "account"
+                    "External Accounts"
                 ],
                 "summary": "Get Get Account Information",
                 "parameters": [
@@ -120,7 +120,7 @@ var doc = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Retrieves live account balances for all accounts attached to an external account registratiom",
@@ -131,7 +131,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "account"
+                    "External Accounts"
                 ],
                 "summary": "Get Current A/c Balances",
                 "responses": {
@@ -157,7 +157,7 @@ var doc = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Creates a permanent access token based on public token",
@@ -168,7 +168,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "account"
+                    "External Accounts"
                 ],
                 "summary": "Register Access Token",
                 "parameters": [
@@ -199,7 +199,7 @@ var doc = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Gets all transactions for the  past 30 days",
@@ -210,7 +210,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "account"
+                    "External Accounts"
                 ],
                 "summary": "Get Transactions",
                 "parameters": [
@@ -247,7 +247,7 @@ var doc = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Creates a budget with requesting user as owner",
@@ -258,7 +258,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "budget"
+                    "Budgets"
                 ],
                 "summary": "Create a budget",
                 "parameters": [
@@ -304,7 +304,7 @@ var doc = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Gets a list of all budgets current user is a part of",
@@ -315,7 +315,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "budget"
+                    "Budgets"
                 ],
                 "summary": "Get Budgets",
                 "responses": {
@@ -341,7 +341,7 @@ var doc = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Add expense to an existing budget",
@@ -352,7 +352,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "expense"
+                    "Budget Expenses"
                 ],
                 "summary": "Adds an expense to the given budget",
                 "parameters": [
@@ -398,7 +398,7 @@ var doc = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Deletes Expense from DB based on id",
@@ -409,7 +409,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "expense"
+                    "Budget Expenses"
                 ],
                 "summary": "Deletes Expense",
                 "parameters": [
@@ -457,7 +457,7 @@ var doc = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Gets a list of all expenses tied to a given budget",
@@ -468,7 +468,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "expense"
+                    "Budget Expenses"
                 ],
                 "summary": "Gets expenses for budget",
                 "parameters": [
@@ -515,7 +515,7 @@ var doc = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Gets all the expense charge cycles available to create an expense for a budget",
@@ -526,7 +526,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "expense"
+                    "Budget Expenses"
                 ],
                 "summary": "Gets a list of expense charge cycles",
                 "responses": {
@@ -552,7 +552,7 @@ var doc = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Add expense to an existing budget",
@@ -563,7 +563,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "expense"
+                    "Budget Expenses"
                 ],
                 "summary": "Adds an expense to the database",
                 "parameters": [
@@ -615,7 +615,7 @@ var doc = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Registers a user profile in the finlit database",
@@ -626,7 +626,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "role"
+                    "User Roles"
                 ],
                 "summary": "Registers user to the database",
                 "responses": {
@@ -652,7 +652,7 @@ var doc = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Gets the user's profile from the finlit database",
@@ -663,7 +663,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "Users"
                 ],
                 "summary": "Gets user from the database",
                 "operationId": "user-get",
@@ -693,7 +693,7 @@ var doc = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "Google AccessToken": []
                     }
                 ],
                 "description": "Registers a user profile in the finlit database",
@@ -704,7 +704,7 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "user"
+                    "Users"
                 ],
                 "summary": "Registers user to the database",
                 "responses": {
@@ -1028,11 +1028,6 @@ var doc = `{
         }
     },
     "securityDefinitions": {
-        "ApiKeyAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        },
         "Google AccessToken": {
             "type": "apiKey",
             "name": "Authorization",

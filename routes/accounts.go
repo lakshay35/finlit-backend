@@ -19,11 +19,11 @@ import (
 // GetAccountInformation ...
 // @Summary Get Get Account Information
 // @Description Gets account information based on access token
-// @Tags account
+// @Tags External Accounts
 // @Accept  json
 // @Param account body Account true "Account payload to get informaion on"
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {object} models.PlaidAccount
 // @Failure  400 {object} models.Error
 // @Router /account/get-account-details [get]
@@ -59,10 +59,10 @@ func GetAccountInformation(c *gin.Context) {
 // GetCurrentBalances ...
 // @Summary Get Current A/c Balances
 // @Description Retrieves live account balances for all accounts attached to an external account registratiom
-// @Tags account
+// @Tags External Accounts
 // @Accept  json
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {array} models.PlaidGetBalancesResponse
 // @Failure  400 {object} models.Error
 // @Router /account/live-balances [get]
@@ -82,11 +82,11 @@ func GetCurrentBalances(c *gin.Context) {
 // GetTransactions ...
 // @Summary Get Transactions
 // @Description Gets all transactions for the  past 30 days
-// @Tags account
+// @Tags External Accounts
 // @Accept  json
 // @Produce  json
 // @Param body body Account true "Account payload to identify transactions with"
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {array} models.PlaidTransaction
 // @Failure 403 {object} models.Error
 // @Router /account/transactions [get]
@@ -126,11 +126,11 @@ type LinkTokenPayload struct {
 // Creates link token
 // @Summary Create Link Token
 // @Description Creates a link token to setup UI for generating public tokens
-// @Tags account
+// @Tags External Accounts
 // @Accept  json
 // @Param id path string true "Expense ID (UUID)"
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {object} LinkTokenPayload
 // @Failure 400 {object} models.Error
 // @Router /budget/create [post]
@@ -169,10 +169,10 @@ type Account struct {
 // GetAllAccounts ...
 // @Summary Get all registered external accounts
 // @Description Gets a list of all external accounts registered via Plaid
-// @Tags account
+// @Tags External Accounts
 // @Accept  json
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {array} Account
 // @Failure 403 {object} models.Error
 // @Failure 404 {object} models.Error
@@ -222,11 +222,11 @@ type tokenPayload struct {
 // RegisterAccessToken ...
 // @Summary Register Access Token
 // @Description Creates a permanent access token based on public token
-// @Tags account
+// @Tags External Accounts
 // @Accept  json
 // @Param body body tokenPayload true "Token Payload for registering access token"
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 201
 // @Failure 403 {object} models.Error
 // @Router /account/register-token [post]

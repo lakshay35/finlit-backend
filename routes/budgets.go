@@ -13,11 +13,11 @@ import (
 // CreateBudget ...
 // @Summary Create a budget
 // @Description Creates a budget with requesting user as owner
-// @Tags budget
+// @Tags Budgets
 // @Accept  json
 // @Produce  json
 // @Param budget body models.Budget true "Budget body needed to create budget"
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {object} models.Expense
 // @Failure 403 {object} models.Error
 // @Failure 400 {object} models.Error
@@ -68,10 +68,10 @@ func CreateBudget(c *gin.Context) {
 // GetBudgets ...
 // @Summary Get Budgets
 // @Description Gets a list of all budgets current user is a part of
-// @Tags budget
+// @Tags Budgets
 // @Accept  json
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {array} models.Budget
 // @Failure 403 {object} models.Error
 // @Router /budget/get [post]

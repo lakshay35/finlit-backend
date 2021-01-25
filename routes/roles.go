@@ -22,10 +22,10 @@ type addRoleRequest struct {
 // AddUserRoleToBudget ...
 // @Summary Registers user to the database
 // @Description Registers a user profile in the finlit database
-// @Tags role
+// @Tags User Roles
 // @Accept  json
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200
 // @Failure 403 {object} models.Error
 // @Failure 409 {object} models.Error

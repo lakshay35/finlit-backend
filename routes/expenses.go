@@ -14,11 +14,11 @@ import (
 // AddExpense ..
 // @Summary Adds an expense to the given budget
 // @Description Add expense to an existing budget
-// @Tags expense
+// @Tags Budget Expenses
 // @Accept  json
 // @Produce  json
 // @Param body body models.Expense true "Expense payload representing entity to be created"
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 201 {object} models.Expense
 // @Failure 403 {object} models.Error
 // @Failure 400 {object} models.Error
@@ -82,11 +82,11 @@ func AddExpense(c *gin.Context) {
 // GetAllExpenses ..
 // @Summary Gets expenses for budget
 // @Description Gets a list of all expenses tied to a given budget
-// @Tags expense
+// @Tags Budget Expenses
 // @Accept  json
 // @Produce  json
 // @Param budgetID header string true "Budget ID to get expenses against"
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {array} models.Expense
 // @Failure 403 {object} models.Error
 // @Failure 400 {object} models.Error
@@ -159,11 +159,11 @@ func GetAllExpenses(c *gin.Context) {
 // UpdateExpense ..
 // @Summary Adds an expense to the database
 // @Description Add expense to an existing budget
-// @Tags expense
+// @Tags Budget Expenses
 // @Accept  json
 // @Produce  json
 // @Param body body models.Expense true "Expense payload representing entity to be updated"
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 204 {object} models.Expense
 // @Failure 403 {object} models.Error
 // @Failure 401 {object} models.Error
@@ -242,12 +242,12 @@ func UpdateExpense(c *gin.Context) {
 // DeleteExpense ..
 // @Summary Deletes Expense
 // @Description Deletes Expense from DB based on id
-// @Tags expense
+// @Tags Budget Expenses
 // @Accept  json
 // @Param id path string true "Expense ID (UUID)"
 // @Produce  json
 // @Param id path string true "ID of Expense"
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 204
 // @Failure 403 {object} models.Error
 // @Failure 401 {object} models.Error
@@ -305,10 +305,10 @@ func DeleteExpense(c *gin.Context) {
 // GetExpenseChargeCycles ...
 // @Summary Gets a list of expense charge cycles
 // @Description Gets all the expense charge cycles available to create an expense for a budget
-// @Tags expense
+// @Tags Budget Expenses
 // @Accept  json
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {array} models.ExpenseChargeCycle
 // @Failure 403 {object} models.Error
 // @Router /expense/get-expense-charge-cycles [get]

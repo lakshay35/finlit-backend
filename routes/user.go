@@ -16,10 +16,10 @@ import (
 // RegisterUser ...
 // @Summary Registers user to the database
 // @Description Registers a user profile in the finlit database
-// @Tags user
+// @Tags Users
 // @Accept  json
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {object} models.User
 // @Failure 403 {object} models.Error
 // @Failure 409 {object} models.Error
@@ -51,11 +51,11 @@ func RegisterUser(c *gin.Context) {
 // GetUserProfile ...
 // @Summary Gets user from the database
 // @Description Gets the user's profile from the finlit database
-// @Tags user
+// @Tags Users
 // @ID user-get
 // @Accept  json
 // @Produce  json
-// @Security ApiKeyAuth
+// @Security Google AccessToken
 // @Success 200 {object} models.User
 // @Failure 403 {object} models.Error
 // @Failure 404 {object} models.Error

@@ -220,10 +220,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Get all registered external accounts
       tags:
-      - account
+      - External Accounts
   /account/get-account-details:
     get:
       consumes:
@@ -248,10 +248,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Get Get Account Information
       tags:
-      - account
+      - External Accounts
   /account/live-balances:
     get:
       consumes:
@@ -272,10 +272,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Get Current A/c Balances
       tags:
-      - account
+      - External Accounts
   /account/register-token:
     post:
       consumes:
@@ -298,10 +298,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Register Access Token
       tags:
-      - account
+      - External Accounts
   /account/transactions:
     get:
       consumes:
@@ -328,10 +328,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Get Transactions
       tags:
-      - account
+      - External Accounts
   /budget/create:
     post:
       consumes:
@@ -364,10 +364,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Create a budget
       tags:
-      - budget
+      - Budgets
   /budget/get:
     post:
       consumes:
@@ -387,10 +387,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Get Budgets
       tags:
-      - budget
+      - Budgets
   /expense/add:
     post:
       consumes:
@@ -423,10 +423,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Adds an expense to the given budget
       tags:
-      - expense
+      - Budget Expenses
   /expense/delete/{id}:
     delete:
       consumes:
@@ -461,10 +461,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Deletes Expense
       tags:
-      - expense
+      - Budget Expenses
   /expense/get:
     get:
       consumes:
@@ -498,10 +498,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Gets expenses for budget
       tags:
-      - expense
+      - Budget Expenses
   /expense/get-expense-charge-cycles:
     get:
       consumes:
@@ -522,10 +522,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Gets a list of expense charge cycles
       tags:
-      - expense
+      - Budget Expenses
   /expense/update:
     put:
       consumes:
@@ -562,10 +562,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Adds an expense to the database
       tags:
-      - expense
+      - Budget Expenses
   /role/add-user-role-to-budget:
     post:
       consumes:
@@ -585,10 +585,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Registers user to the database
       tags:
-      - role
+      - User Roles
   /user/get:
     get:
       consumes:
@@ -611,10 +611,10 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Gets user from the database
       tags:
-      - user
+      - Users
   /user/register:
     post:
       consumes:
@@ -636,15 +636,11 @@ paths:
           schema:
             $ref: '#/definitions/models.Error'
       security:
-      - ApiKeyAuth: []
+      - Google AccessToken: []
       summary: Registers user to the database
       tags:
-      - user
+      - Users
 securityDefinitions:
-  ApiKeyAuth:
-    in: header
-    name: Authorization
-    type: apiKey
   Google AccessToken:
     in: header
     name: Authorization
