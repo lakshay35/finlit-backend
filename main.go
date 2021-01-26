@@ -73,7 +73,7 @@ func main() {
 		user := api.Group("/user")
 		{
 			user.POST("/register", routes.RegisterUser)
-			user.GET("/get ", routes.GetUserProfile)
+			user.GET("/get", routes.GetUserProfile)
 		}
 		role := api.Group("/role")
 		{
@@ -83,7 +83,7 @@ func main() {
 		{
 			account.GET("/get", routes.GetAllAccounts)
 			account.POST("/get-account-details", routes.GetAccountInformation)
-			account.POST("/create-link-token", routes.CreateLinkToken)
+			account.GET("/create-link-token", routes.CreateLinkToken)
 			account.POST("/transactions", routes.GetTransactions)
 			account.POST("/live-balances", routes.GetCurrentBalances)
 			account.POST("/register-token", routes.RegisterAccessToken)
@@ -99,11 +99,8 @@ func main() {
 	}
 
 	// TODO:
-	// api/account/transactions should validate body instead of returning a 500
-	// api/account/live-balances should validate body instead of returning a 500
 	// api/user/register should validate body instead of registering a user with empty values
 	// api/role/add-user-role-to-budget should be renamed and should validate body instead of returning a 500
-	// migrate services into services module
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

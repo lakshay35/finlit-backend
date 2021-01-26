@@ -1,4 +1,11 @@
 definitions:
+  models.Account:
+    properties:
+      account_name:
+        type: string
+      external_account_id:
+        type: string
+    type: object
   models.Budget:
     properties:
       budget_id:
@@ -6,6 +13,11 @@ definitions:
       budget_name:
         type: string
       owner_id:
+        type: string
+    type: object
+  models.CreateBudgetPayload:
+    properties:
+      budget_name:
         type: string
     type: object
   models.Error:
@@ -35,6 +47,11 @@ definitions:
       expense_charge_cycle_id:
         type: integer
       unit:
+        type: string
+    type: object
+  models.LinkTokenPayload:
+    properties:
+      linkToken:
         type: string
     type: object
   models.PlaidAccount:
@@ -157,6 +174,11 @@ definitions:
       unofficial_currency_code:
         type: string
     type: object
+  models.PublicTokenPayload:
+    properties:
+      public_token:
+        type: string
+    type: object
   models.User:
     properties:
       email:
@@ -174,21 +196,17 @@ definitions:
       userID:
         type: string
     type: object
-  routes.Account:
+  models.UserRegistrationPayload:
     properties:
-      account_name:
+      email:
         type: string
-      external_account_id:
+      firstName:
         type: string
-    type: object
-  routes.LinkTokenPayload:
-    properties:
-      linkToken:
+      googleID:
         type: string
-    type: object
-  routes.tokenPayload:
-    properties:
-      public_token:
+      lastName:
+        type: string
+      phone:
         type: string
     type: object
 info:
@@ -197,6 +215,27 @@ info:
     name: Lakshay Sharma
     url: sharmalakshay.com
 paths:
+  /account/create-link-token:
+    get:
+      consumes:
+      - application/json
+      description: Creates a link token to setup UI for generating public tokens
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.LinkTokenPayload'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Create Link Token
+      tags:
+      - External Accounts
   /account/get:
     get:
       consumes:
@@ -209,7 +248,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/routes.Account'
+              $ref: '#/definitions/models.Account'
             type: array
         "403":
           description: Forbidden
@@ -225,7 +264,7 @@ paths:
       tags:
       - External Accounts
   /account/get-account-details:
-    get:
+    post:
       consumes:
       - application/json
       description: Gets account information based on access token
@@ -235,7 +274,7 @@ paths:
         name: account
         required: true
         schema:
-          $ref: '#/definitions/routes.Account'
+          $ref: '#/definitions/models.Account'
       produces:
       - application/json
       responses:
@@ -249,7 +288,7 @@ paths:
             $ref: '#/definitions/models.Error'
       security:
       - Google AccessToken: []
-      summary: Get Get Account Information
+      summary: Get Account Information
       tags:
       - External Accounts
   /account/live-balances:
@@ -287,7 +326,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.tokenPayload'
+          $ref: '#/definitions/models.PublicTokenPayload'
       produces:
       - application/json
       responses:
@@ -303,7 +342,7 @@ paths:
       tags:
       - External Accounts
   /account/transactions:
-    get:
+    post:
       consumes:
       - application/json
       description: Gets all transactions for the  past 30 days
@@ -313,7 +352,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.Account'
+          $ref: '#/definitions/models.Account'
       produces:
       - application/json
       responses:
@@ -343,14 +382,14 @@ paths:
         name: budget
         required: true
         schema:
-          $ref: '#/definitions/models.Budget'
+          $ref: '#/definitions/models.CreateBudgetPayload'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Expense'
+            $ref: '#/definitions/models.Budget'
         "400":
           description: Bad Request
           schema:
@@ -369,7 +408,7 @@ paths:
       tags:
       - Budgets
   /budget/get:
-    post:
+    get:
       consumes:
       - application/json
       description: Gets a list of all budgets current user is a part of
@@ -438,11 +477,6 @@ paths:
         name: id
         required: true
         type: string
-      - description: ID of Expense
-        in: path
-        name: id
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -473,7 +507,7 @@ paths:
       parameters:
       - description: Budget ID to get expenses against
         in: header
-        name: budgetID
+        name: Budget-ID
         required: true
         type: string
       produces:
@@ -594,7 +628,6 @@ paths:
       consumes:
       - application/json
       description: Gets the user's profile from the finlit database
-      operationId: user-get
       produces:
       - application/json
       responses:
@@ -620,6 +653,13 @@ paths:
       consumes:
       - application/json
       description: Registers a user profile in the finlit database
+      parameters:
+      - description: User Information Paylod
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserRegistrationPayload'
       produces:
       - application/json
       responses:

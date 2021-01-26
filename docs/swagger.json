@@ -8,6 +8,40 @@
         }
     },
     "paths": {
+        "/account/create-link-token": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Creates a link token to setup UI for generating public tokens",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "External Accounts"
+                ],
+                "summary": "Create Link Token",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.LinkTokenPayload"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/account/get": {
             "get": {
                 "security": [
@@ -32,7 +66,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/routes.Account"
+                                "$ref": "#/definitions/models.Account"
                             }
                         }
                     },
@@ -52,7 +86,7 @@
             }
         },
         "/account/get-account-details": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "Google AccessToken": []
@@ -68,7 +102,7 @@
                 "tags": [
                     "External Accounts"
                 ],
-                "summary": "Get Get Account Information",
+                "summary": "Get Account Information",
                 "parameters": [
                     {
                         "description": "Account payload to get informaion on",
@@ -76,7 +110,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.Account"
+                            "$ref": "#/definitions/models.Account"
                         }
                     }
                 ],
@@ -158,7 +192,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.tokenPayload"
+                            "$ref": "#/definitions/models.PublicTokenPayload"
                         }
                     }
                 ],
@@ -176,7 +210,7 @@
             }
         },
         "/account/transactions": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "Google AccessToken": []
@@ -200,7 +234,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.Account"
+                            "$ref": "#/definitions/models.Account"
                         }
                     }
                 ],
@@ -248,7 +282,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Budget"
+                            "$ref": "#/definitions/models.CreateBudgetPayload"
                         }
                     }
                 ],
@@ -256,7 +290,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Expense"
+                            "$ref": "#/definitions/models.Budget"
                         }
                     },
                     "400": {
@@ -281,7 +315,7 @@
             }
         },
         "/budget/get": {
-            "post": {
+            "get": {
                 "security": [
                     {
                         "Google AccessToken": []
@@ -399,13 +433,6 @@
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "ID of Expense",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -455,7 +482,7 @@
                     {
                         "type": "string",
                         "description": "Budget ID to get expenses against",
-                        "name": "budgetID",
+                        "name": "Budget-ID",
                         "in": "header",
                         "required": true
                     }
@@ -646,7 +673,6 @@
                     "Users"
                 ],
                 "summary": "Gets user from the database",
-                "operationId": "user-get",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -687,6 +713,17 @@
                     "Users"
                 ],
                 "summary": "Registers user to the database",
+                "parameters": [
+                    {
+                        "description": "User Information Paylod",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UserRegistrationPayload"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -711,6 +748,17 @@
         }
     },
     "definitions": {
+        "models.Account": {
+            "type": "object",
+            "properties": {
+                "account_name": {
+                    "type": "string"
+                },
+                "external_account_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Budget": {
             "type": "object",
             "properties": {
@@ -721,6 +769,14 @@
                     "type": "string"
                 },
                 "owner_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CreateBudgetPayload": {
+            "type": "object",
+            "properties": {
+                "budget_name": {
                     "type": "string"
                 }
             }
@@ -766,6 +822,14 @@
                     "type": "integer"
                 },
                 "unit": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.LinkTokenPayload": {
+            "type": "object",
+            "properties": {
+                "linkToken": {
                     "type": "string"
                 }
             }
@@ -953,6 +1017,14 @@
                 }
             }
         },
+        "models.PublicTokenPayload": {
+            "type": "object",
+            "properties": {
+                "public_token": {
+                    "type": "string"
+                }
+            }
+        },
         "models.User": {
             "type": "object",
             "properties": {
@@ -979,29 +1051,22 @@
                 }
             }
         },
-        "routes.Account": {
+        "models.UserRegistrationPayload": {
             "type": "object",
             "properties": {
-                "account_name": {
+                "email": {
                     "type": "string"
                 },
-                "external_account_id": {
+                "firstName": {
                     "type": "string"
-                }
-            }
-        },
-        "routes.LinkTokenPayload": {
-            "type": "object",
-            "properties": {
-                "linkToken": {
+                },
+                "googleID": {
                     "type": "string"
-                }
-            }
-        },
-        "routes.tokenPayload": {
-            "type": "object",
-            "properties": {
-                "public_token": {
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "phone": {
                     "type": "string"
                 }
             }

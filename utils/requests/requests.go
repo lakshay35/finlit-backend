@@ -1,6 +1,8 @@
 package requests
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/lakshay35/finlit-backend/models"
 )
@@ -8,6 +10,9 @@ import (
 // ThrowError ...
 // Sets error context
 func ThrowError(c *gin.Context, code int, reason string) {
+
+	// TODO: Add log statement here
+
 	c.AbortWithStatusJSON(code, gin.H{
 		"error":  true,
 		"reason": reason,
@@ -21,7 +26,8 @@ func ParseBody(c *gin.Context, res interface{}) error {
 	err := c.BindJSON(&res)
 
 	if err != nil {
-		ThrowError(c, 400, "request body structure match error")
+		fmt.Println(err.Error())
+		ThrowError(c, 400, "Request body deserialization error")
 		return err
 	}
 
@@ -38,4 +44,16 @@ func GetUserFromContext(c *gin.Context) models.User {
 	}
 
 	return user.(models.User)
+}
+
+// GetUserIDFromContext ...
+// Returns user object form context
+func GetUserIDFromContext(c *gin.Context) string {
+	user, exists := c.Get("USERID")
+
+	if !exists {
+		panic("USERID DOES NOT EXIST IN CONTEXT")
+	}
+
+	return user.(string)
 }

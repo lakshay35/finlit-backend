@@ -7,7 +7,6 @@ import (
 	uuid "github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	expenseService "github.com/lakshay35/finlit-backend/services/expense"
-	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
 
@@ -26,57 +25,18 @@ import (
 // @Router /expense/add [post]
 func AddExpense(c *gin.Context) {
 
-	var expense models.Expense
-	err := c.BindJSON(&expense)
+	var json models.Expense
+	err := requests.ParseBody(c, &json)
 
 	if err != nil {
-		requests.ThrowError(c, http.StatusBadRequest, "Payload does not match")
-	}
-
-	expenseChargeCycleID, err := expenseService.GetExpenseChargeCycleID(expense.ExpenseChargeCycle)
-
-	if err != nil {
-		requests.ThrowError(
-			c,
-			http.StatusBadRequest,
-			"expense_charge_cycle "+expense.ExpenseChargeCycle+" is not valid",
-		)
 		return
 	}
 
 	user := requests.GetUserFromContext(c)
 
-	if !expenseService.IsUserAdmin(expense.BudgetID, user.UserID) && !expenseService.IsUserOwner(expense.BudgetID, user.UserID) {
-		requests.ThrowError(
-			c,
-			http.StatusUnauthorized,
-			"You do not have enough permissions to add expenses to this budget",
-		)
-		return
-	}
+	expenseService.AddExpenseToBudget(&json, user.UserID)
 
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := `INSERT INTO expenses (budget_id, expense_name, expense_value, expense_description, expense_charge_cycle_id
-	) VALUES ($1, $2, $3, $4, $5) RETURNING expense_id`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	err = stmt.QueryRow(
-		expense.BudgetID,
-		expense.ExpenseName,
-		expense.ExpenseValue,
-		expense.ExpenseDescription,
-		expenseChargeCycleID,
-	).Scan(&expense.ExpenseID)
-
-	if err != nil {
-		panic("Something went wrong while adding expense")
-	}
-
-	c.JSON(http.StatusCreated, expense)
+	c.JSON(http.StatusCreated, json)
 }
 
 // GetAllExpenses ..
@@ -85,7 +45,7 @@ func AddExpense(c *gin.Context) {
 // @Tags Budget Expenses
 // @Accept  json
 // @Produce  json
-// @Param budgetID header string true "Budget ID to get expenses against"
+// @Param Budget-ID header string true "Budget ID to get expenses against"
 // @Security Google AccessToken
 // @Success 200 {array} models.Expense
 // @Failure 403 {object} models.Error
@@ -107,49 +67,14 @@ func GetAllExpenses(c *gin.Context) {
 
 	user := requests.GetUserFromContext(c)
 
-	if !expenseService.IsUserAdmin(budgetID, user.UserID) && !expenseService.IsUserOwner(budgetID, user.UserID) {
+	expenses, getExpensesError := expenseService.GetAllExpensesForBudget(budgetID, user.UserID)
+
+	if getExpensesError != nil {
 		requests.ThrowError(
 			c,
-			http.StatusUnauthorized,
-			"You do not have enough permissions to view expenses of this budget",
+			getExpensesError.StatusCode,
+			getExpensesError.Error(),
 		)
-		return
-	}
-
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := `SELECT expense_id, budget_id, expense_name, expense_value, expense_description, unit
-	FROM expenses ep JOIN expense_charge_cycles ecc ON ecc.expense_charge_cycle_id = ep.expense_charge_cycle_id
-	WHERE ep.budget_id = $1`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	rows, err := stmt.Query(budgetID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	expenses := make([]models.Expense, 0)
-
-	for rows.Next() {
-		var expense models.Expense
-		var unit string
-
-		rows.Scan(
-			&expense.ExpenseID,
-			&expense.BudgetID,
-			&expense.ExpenseName,
-			&expense.ExpenseValue,
-			&expense.ExpenseDescription,
-			&unit,
-		)
-
-		expense.ExpenseChargeCycle = unit
-
-		expenses = append(expenses, expense)
 	}
 
 	c.JSON(http.StatusOK, expenses)
@@ -172,15 +97,15 @@ func GetAllExpenses(c *gin.Context) {
 // @Router /expense/update [put]
 func UpdateExpense(c *gin.Context) {
 
-	var expense models.Expense
+	var json models.Expense
 
-	err := requests.ParseBody(c, &expense)
+	err := requests.ParseBody(c, &json)
 	if err != nil {
 		return
 	}
 
 	// Ensure expense exists
-	_, err = expenseService.GetExpense(expense.ExpenseID)
+	_, err = expenseService.GetExpense(json.ExpenseID)
 	if err != nil {
 		requests.ThrowError(
 			c,
@@ -192,51 +117,22 @@ func UpdateExpense(c *gin.Context) {
 
 	user := requests.GetUserFromContext(c)
 
-	// Ensure user is authorized to update expense
-	if !expenseService.IsUserOwner(expense.BudgetID, user.UserID) && !expenseService.IsUserAdmin(expense.BudgetID, user.UserID) {
+	updateExpenseError := expenseService.UpdateExpense(
+		&json,
+		user.UserID,
+	)
+
+	if updateExpenseError != nil {
 		requests.ThrowError(
 			c,
-			http.StatusUnauthorized,
-			"You do not have enough permissions to add expenses to this budget",
+			updateExpenseError.StatusCode,
+			updateExpenseError.Message,
 		)
+
 		return
 	}
 
-	// Ensures expenseID is passed
-	if expense.ExpenseID.String() != "" {
-		requests.ThrowError(
-			c,
-			http.StatusBadRequest,
-			"Valid expense_id not passed",
-		)
-	}
-
-	connection := database.GetConnection()
-	defer connection.Commit()
-
-	query := `UPDATE expenses (budget_id, expense_name, expense_value, expense_description, expense_charge_cycle_id
-	) VALUES ($1, $2, $3, $4, $5) WHERE expense_id = $6 `
-
-	stmt := database.PrepareStatement(connection, query)
-
-	_, err = stmt.Exec(
-		expense.BudgetID,
-		expense.ExpenseName,
-		expense.ExpenseValue,
-		expense.ExpenseDescription,
-		expense.ExpenseChargeCycle,
-		expense.ExpenseID,
-	)
-
-	if err != nil {
-		requests.ThrowError(
-			c,
-			http.StatusBadRequest,
-			err.Error(),
-		)
-	}
-
-	c.JSON(http.StatusNoContent, expense)
+	c.JSON(http.StatusNoContent, json)
 }
 
 // DeleteExpense ..
@@ -246,7 +142,6 @@ func UpdateExpense(c *gin.Context) {
 // @Accept  json
 // @Param id path string true "Expense ID (UUID)"
 // @Produce  json
-// @Param id path string true "ID of Expense"
 // @Security Google AccessToken
 // @Success 204
 // @Failure 403 {object} models.Error
@@ -270,35 +165,18 @@ func DeleteExpense(c *gin.Context) {
 
 	user := requests.GetUserFromContext(c)
 
-	// Ensure user is authorized to update expense
-	if !expenseService.IsUserOwner(expense.BudgetID, user.UserID) && !expenseService.IsUserOwner(expense.BudgetID, user.UserID) {
+	deleteExpenseError := expenseService.DeleteExpense(id, expense.BudgetID, user.UserID)
+
+	if deleteExpenseError != nil {
 		requests.ThrowError(
 			c,
-			http.StatusUnauthorized,
-			"You do not have enough permissions to delete expenses from this budget",
+			deleteExpenseError.StatusCode,
+			deleteExpenseError.Error(),
 		)
+
 		return
 	}
 
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := `DELETE FROM expenses WHERE expense_id = $1`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	_, err = stmt.Exec(
-		id,
-	)
-
-	if err != nil {
-		requests.ThrowError(
-			c,
-			http.StatusBadRequest,
-			err.Error(),
-		)
-	}
 	c.Status(http.StatusNoContent)
 }
 
@@ -313,27 +191,5 @@ func DeleteExpense(c *gin.Context) {
 // @Failure 403 {object} models.Error
 // @Router /expense/get-expense-charge-cycles [get]
 func GetExpenseChargeCycles(c *gin.Context) {
-	connection := database.GetConnection()
-
-	defer connection.Commit()
-
-	query := "SELECT * FROM expense_charge_cycles"
-
-	rows, err := connection.Query(query)
-
-	if err != nil {
-		panic(err)
-	}
-
-	cycles := make([]models.ExpenseChargeCycle, 0)
-
-	for rows.Next() {
-		var cycle models.ExpenseChargeCycle
-
-		rows.Scan(&cycle.ExpenseChargeCycleID, &cycle.Unit)
-
-		cycles = append(cycles, cycle)
-	}
-
-	c.JSON(http.StatusOK, cycles)
+	c.JSON(http.StatusOK, expenseService.GetExpenseChargeCycles())
 }

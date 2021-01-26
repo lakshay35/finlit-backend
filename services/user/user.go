@@ -2,9 +2,11 @@ package user
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
+	"github.com/lakshay35/finlit-backend/models/errors"
 	"github.com/lakshay35/finlit-backend/utils/database"
 )
 
@@ -25,10 +27,11 @@ func GetUser(googleID string) (*models.User, error) {
 	defer tx.Commit()
 
 	stmt := database.PrepareStatement(tx, "SELECT * FROM users where google_id = $1")
-
+	fmt.Println("searching for user with googleID", googleID)
 	res, err := stmt.Query(googleID)
 
 	if err != nil || !res.Next() {
+		panic(err)
 		fmt.Println("USER NOT FOUND IN DB")
 		return nil, CustomError{
 			Message: "User does not exist",
@@ -56,4 +59,35 @@ func GetUser(googleID string) (*models.User, error) {
 	userResult.RegistrationDate = registration_date
 
 	return &userResult, nil
+}
+
+// RegisterUser ...
+// Registers user in the db
+func RegisterUser(user models.UserRegistrationPayload) (*models.User, *errors.Error) {
+	connection := database.GetConnection()
+	defer connection.Commit()
+
+	stmt := database.PrepareStatement(
+		connection,
+		"INSERT INTO users (first_name, last_name, email, phone, google_id) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, registration_date",
+	)
+
+	var result models.User
+
+	err := stmt.QueryRow(
+		result.FirstName,
+		result.LastName,
+		result.Email,
+		result.Phone,
+		result.GoogleID,
+	).Scan(&result.UserID, &result.RegistrationDate)
+
+	if err != nil {
+		return nil, &errors.Error{
+			Message:    "User already exists",
+			StatusCode: http.StatusConflict,
+		}
+	}
+
+	return &result, nil
 }

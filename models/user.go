@@ -12,3 +12,11 @@ type User struct {
 	Phone            string    `json:"phone"`
 	GoogleID         string    `json:"googleID"`
 }
+
+type UserRegistrationPayload struct {
+	FirstName        string    `json:"firstName"`
+	LastName         string    `json:"lastName"`
+	Email            string    `json:"email"`
+	Phone            string    `json:"phone"`
+	GoogleID         string    `json:"googleID"`
+}

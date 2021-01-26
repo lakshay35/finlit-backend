@@ -28,6 +28,40 @@ var doc = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/account/create-link-token": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Creates a link token to setup UI for generating public tokens",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "External Accounts"
+                ],
+                "summary": "Create Link Token",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.LinkTokenPayload"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/account/get": {
             "get": {
                 "security": [
@@ -52,7 +86,7 @@ var doc = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/routes.Account"
+                                "$ref": "#/definitions/models.Account"
                             }
                         }
                     },
@@ -72,7 +106,7 @@ var doc = `{
             }
         },
         "/account/get-account-details": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "Google AccessToken": []
@@ -88,7 +122,7 @@ var doc = `{
                 "tags": [
                     "External Accounts"
                 ],
-                "summary": "Get Get Account Information",
+                "summary": "Get Account Information",
                 "parameters": [
                     {
                         "description": "Account payload to get informaion on",
@@ -96,7 +130,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.Account"
+                            "$ref": "#/definitions/models.Account"
                         }
                     }
                 ],
@@ -178,7 +212,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.tokenPayload"
+                            "$ref": "#/definitions/models.PublicTokenPayload"
                         }
                     }
                 ],
@@ -196,7 +230,7 @@ var doc = `{
             }
         },
         "/account/transactions": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "Google AccessToken": []
@@ -220,7 +254,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.Account"
+                            "$ref": "#/definitions/models.Account"
                         }
                     }
                 ],
@@ -268,7 +302,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Budget"
+                            "$ref": "#/definitions/models.CreateBudgetPayload"
                         }
                     }
                 ],
@@ -276,7 +310,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Expense"
+                            "$ref": "#/definitions/models.Budget"
                         }
                     },
                     "400": {
@@ -301,7 +335,7 @@ var doc = `{
             }
         },
         "/budget/get": {
-            "post": {
+            "get": {
                 "security": [
                     {
                         "Google AccessToken": []
@@ -419,13 +453,6 @@ var doc = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "ID of Expense",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -475,7 +502,7 @@ var doc = `{
                     {
                         "type": "string",
                         "description": "Budget ID to get expenses against",
-                        "name": "budgetID",
+                        "name": "Budget-ID",
                         "in": "header",
                         "required": true
                     }
@@ -666,7 +693,6 @@ var doc = `{
                     "Users"
                 ],
                 "summary": "Gets user from the database",
-                "operationId": "user-get",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -707,6 +733,17 @@ var doc = `{
                     "Users"
                 ],
                 "summary": "Registers user to the database",
+                "parameters": [
+                    {
+                        "description": "User Information Paylod",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UserRegistrationPayload"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -731,6 +768,17 @@ var doc = `{
         }
     },
     "definitions": {
+        "models.Account": {
+            "type": "object",
+            "properties": {
+                "account_name": {
+                    "type": "string"
+                },
+                "external_account_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Budget": {
             "type": "object",
             "properties": {
@@ -741,6 +789,14 @@ var doc = `{
                     "type": "string"
                 },
                 "owner_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CreateBudgetPayload": {
+            "type": "object",
+            "properties": {
+                "budget_name": {
                     "type": "string"
                 }
             }
@@ -786,6 +842,14 @@ var doc = `{
                     "type": "integer"
                 },
                 "unit": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.LinkTokenPayload": {
+            "type": "object",
+            "properties": {
+                "linkToken": {
                     "type": "string"
                 }
             }
@@ -973,6 +1037,14 @@ var doc = `{
                 }
             }
         },
+        "models.PublicTokenPayload": {
+            "type": "object",
+            "properties": {
+                "public_token": {
+                    "type": "string"
+                }
+            }
+        },
         "models.User": {
             "type": "object",
             "properties": {
@@ -999,29 +1071,22 @@ var doc = `{
                 }
             }
         },
-        "routes.Account": {
+        "models.UserRegistrationPayload": {
             "type": "object",
             "properties": {
-                "account_name": {
+                "email": {
                     "type": "string"
                 },
-                "external_account_id": {
+                "firstName": {
                     "type": "string"
-                }
-            }
-        },
-        "routes.LinkTokenPayload": {
-            "type": "object",
-            "properties": {
-                "linkToken": {
+                },
+                "googleID": {
                     "type": "string"
-                }
-            }
-        },
-        "routes.tokenPayload": {
-            "type": "object",
-            "properties": {
-                "public_token": {
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "phone": {
                     "type": "string"
                 }
             }

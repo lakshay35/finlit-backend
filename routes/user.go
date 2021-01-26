@@ -1,15 +1,11 @@
 package routes
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lakshay35/finlit-backend/models"
 	userService "github.com/lakshay35/finlit-backend/services/user"
-	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
 
@@ -19,6 +15,7 @@ import (
 // @Tags Users
 // @Accept  json
 // @Produce  json
+// @Param body body models.UserRegistrationPayload true "User Information Paylod"
 // @Security Google AccessToken
 // @Success 200 {object} models.User
 // @Failure 403 {object} models.Error
@@ -26,33 +23,30 @@ import (
 // @Router /user/register [post]
 func RegisterUser(c *gin.Context) {
 
-	res := models.User{}
-	jsonData, err := ioutil.ReadAll(c.Request.Body)
+	var json models.UserRegistrationPayload
+	err := requests.ParseBody(c, &json)
 
 	if err != nil {
-		panic(err)
-	}
-
-	json.Unmarshal(jsonData, &res)
-	tx := database.GetConnection()
-	defer tx.Commit()
-	stmt := database.PrepareStatement(tx, "INSERT INTO users (first_name, last_name, email, phone, google_id) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, registration_date")
-
-	err = stmt.QueryRow(res.FirstName, res.LastName, res.Email, res.Phone, res.GoogleID).Scan(&res.UserID, &res.RegistrationDate)
-	if err != nil {
-		fmt.Println(err)
-		requests.ThrowError(c, http.StatusConflict, "User already exists")
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	user, userRegistrationError := userService.RegisterUser(json)
+
+	if userRegistrationError != nil {
+		requests.ThrowError(
+			c,
+			userRegistrationError.StatusCode,
+			userRegistrationError.Error(),
+		)
+	}
+
+	c.JSON(http.StatusOK, user)
 }
 
 // GetUserProfile ...
 // @Summary Gets user from the database
 // @Description Gets the user's profile from the finlit database
 // @Tags Users
-// @ID user-get
 // @Accept  json
 // @Produce  json
 // @Security Google AccessToken
@@ -61,32 +55,19 @@ func RegisterUser(c *gin.Context) {
 // @Failure 404 {object} models.Error
 // @Router /user/get [get]
 func GetUserProfile(c *gin.Context) {
-	userID, exists := c.Get("USERID")
+	user := requests.GetUserFromContext(c)
 
-	if !exists {
-		panic("USERID not present when trying to get user profile")
-	}
-
-	user, err := userService.GetUser(userID.(string))
+	res, err := userService.GetUser(user.GoogleID)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"message": "Unable to find user profile registration",
-			"error":   true,
-		})
+		requests.ThrowError(
+			c,
+			http.StatusNotFound,
+			"Unable to find user profile registration",
+		)
+
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
-}
-
-// CustomError ...
-type CustomError struct {
-	Message string
-}
-
-// Error ...
-// Return error Message
-func (err CustomError) Error() string {
-	return err.Message
+	c.JSON(http.StatusOK, res)
 }

@@ -1,23 +1,14 @@
 package routes
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
+
+	"github.com/gin-gonic/gin"
 	roleService "github.com/lakshay35/finlit-backend/services/role"
-	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
-
-type addRoleRequest struct {
-	Role     string    `json:"role"`
-	UserID   uuid.UUID `json:"userID"`
-	BudgetID uuid.UUID `json:"budgetId"`
-}
 
 // AddUserRoleToBudget ...
 // @Summary Registers user to the database
@@ -32,42 +23,16 @@ type addRoleRequest struct {
 // @Router /role/add-user-role-to-budget [post]
 func AddUserRoleToBudget(c *gin.Context) {
 
-	user, found := c.Get("USER")
-
-	userObj := user.(models.User)
-
-	res := addRoleRequest{}
-	jsonData, err := ioutil.ReadAll(c.Request.Body)
+	var json models.AddRolePayload
+	err := requests.ParseBody(c, &json)
 
 	if err != nil {
-		// TODO: Create a request body interceptor annotation
-		requests.ThrowError(c, 400, "malformed body struct")
 		return
 	}
 
-	json.Unmarshal(jsonData, &res)
+	user := requests.GetUserFromContext(c)
 
-	if !found {
-		panic("User ID not found in request context")
-	}
-
-	// Only budget owner can add users to budget
-	if !roleService.DoesUserOwnBudget(userObj.UserID, res.BudgetID) {
-		requests.ThrowError(c, 401, "Not enough permissions to add users to")
-	}
-
-	connection := database.GetConnection()
-	defer connection.Commit()
-
-	query := "INSERT INTO user_roles (user_id, role_id, budget_id) VALUES ('$1, (select role_id from roles where role_name = $2), $3)"
-
-	stmt := database.PrepareStatement(connection, query)
-
-	_, err = stmt.Exec(res.UserID, roleService.GetRole(res.Role), res.BudgetID)
-
-	if err != nil {
-		requests.ThrowError(c, 400, "Unknw")
-	}
+	roleService.AddRoleToBudget(user.UserID, json.BudgetID, json.Role)
 
 	c.Status(http.StatusOK)
 }
