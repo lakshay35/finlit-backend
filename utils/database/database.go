@@ -38,6 +38,16 @@ func GetConnection() *sql.Tx {
 	return tx
 }
 
+// CloseConnection ...
+// Closes connection to db
+func CloseConnection(tx *sql.Tx) {
+	err := tx.Commit()
+
+	if err != nil {
+		panic(err)
+	}
+}
+
 // PrepareStatement ...
 // Prepares statement and
 // returns executable stmt object

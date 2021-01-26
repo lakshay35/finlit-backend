@@ -1,9 +1,12 @@
 package middlewares
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"google.golang.org/api/option"
 
 	"github.com/gin-gonic/gin"
 	userService "github.com/lakshay35/finlit-backend/services/user"
@@ -27,8 +30,12 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		httpClient := &http.Client{}
-		oauth2Service, err := oauth2.New(httpClient)
+		oauth2Service, err := oauth2.NewService(context.Background(), option.WithHTTPClient(&http.Client{}))
+
+		if err != nil {
+			panic(err)
+		}
+
 		tokenInfoCall := oauth2Service.Tokeninfo()
 		tokenInfoCall.AccessToken(token)
 		tokenInfo, err := tokenInfoCall.Do()

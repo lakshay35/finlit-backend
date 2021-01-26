@@ -4,59 +4,43 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	"github.com/lakshay35/finlit-backend/models/errors"
 	"github.com/lakshay35/finlit-backend/utils/database"
 )
 
-type CustomError struct {
-	Message string
-}
-
-// Error ...
-// Return error Message
-func (err CustomError) Error() string {
-	return err.Message
-}
-
 //GetUser ...
 // Gets user from database
-func GetUser(googleID string) (*models.User, error) {
+func GetUser(googleID string) (*models.User, *errors.Error) {
 	tx := database.GetConnection()
-	defer tx.Commit()
+	defer database.CloseConnection(tx)
 
 	stmt := database.PrepareStatement(tx, "SELECT * FROM users where google_id = $1")
 	fmt.Println("searching for user with googleID", googleID)
 	res, err := stmt.Query(googleID)
 
 	if err != nil || !res.Next() {
-		panic(err)
-		fmt.Println("USER NOT FOUND IN DB")
-		return nil, CustomError{
-			Message: "User does not exist",
+		return nil, &errors.Error{
+			Message:    "User does not exist",
+			StatusCode: http.StatusNotFound,
 		}
 	}
 
 	var userResult models.User
 
-	var user_id uuid.UUID
-	var first_name string
-	var last_name string
-	var email string
-	var phone string
-	var google_id string
-	var registration_date string
+	err = res.Scan(
+		&userResult.UserID,
+		&userResult.FirstName,
+		&userResult.LastName,
+		&userResult.Email,
+		&userResult.Phone,
+		&userResult.GoogleID,
+		&userResult.RegistrationDate,
+	)
 
-	res.Scan(&user_id, &first_name, &last_name, &email, &phone, &google_id, &registration_date)
-
-	userResult.UserID = user_id
-	userResult.FirstName = first_name
-	userResult.LastName = last_name
-	userResult.Email = email
-	userResult.Phone = phone
-	userResult.GoogleID = google_id
-	userResult.RegistrationDate = registration_date
+	if err != nil {
+		panic(err)
+	}
 
 	return &userResult, nil
 }
@@ -65,7 +49,7 @@ func GetUser(googleID string) (*models.User, error) {
 // Registers user in the db
 func RegisterUser(user models.UserRegistrationPayload) (*models.User, *errors.Error) {
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	stmt := database.PrepareStatement(
 		connection,

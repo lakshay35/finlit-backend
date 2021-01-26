@@ -771,6 +771,9 @@ var doc = `{
         "models.Account": {
             "type": "object",
             "properties": {
+                "access_token": {
+                    "type": "string"
+                },
                 "account_name": {
                     "type": "string"
                 },
@@ -819,7 +822,7 @@ var doc = `{
                     "type": "string"
                 },
                 "expense_charge_cycle": {
-                    "type": "string"
+                    "$ref": "#/definitions/models.ExpenseChargeCycle"
                 },
                 "expense_description": {
                     "type": "string"
@@ -1051,22 +1054,22 @@ var doc = `{
                 "email": {
                     "type": "string"
                 },
-                "firstName": {
+                "first_name": {
                     "type": "string"
                 },
-                "googleID": {
+                "google_id": {
                     "type": "string"
                 },
-                "lastName": {
+                "last_name": {
                     "type": "string"
                 },
                 "phone": {
                     "type": "string"
                 },
-                "registrationDate": {
+                "registration_date": {
                     "type": "string"
                 },
-                "userID": {
+                "user_id": {
                     "type": "string"
                 }
             }
@@ -1077,13 +1080,13 @@ var doc = `{
                 "email": {
                     "type": "string"
                 },
-                "firstName": {
+                "first_name": {
                     "type": "string"
                 },
-                "googleID": {
+                "google_id": {
                     "type": "string"
                 },
-                "lastName": {
+                "last_name": {
                     "type": "string"
                 },
                 "phone": {

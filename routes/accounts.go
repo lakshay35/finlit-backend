@@ -140,15 +140,6 @@ func CreateLinkToken(c *gin.Context) {
 	})
 }
 
-type httpError struct {
-	errorCode int
-	error     string
-}
-
-func (httpError *httpError) Error() string {
-	return httpError.error
-}
-
 // GetAllAccounts ...
 // @Summary Get all registered external accounts
 // @Description Gets a list of all external accounts registered via Plaid

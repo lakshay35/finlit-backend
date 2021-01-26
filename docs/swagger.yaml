@@ -1,6 +1,8 @@
 definitions:
   models.Account:
     properties:
+      access_token:
+        type: string
       account_name:
         type: string
       external_account_id:
@@ -32,7 +34,7 @@ definitions:
       budget_id:
         type: string
       expense_charge_cycle:
-        type: string
+        $ref: '#/definitions/models.ExpenseChargeCycle'
       expense_description:
         type: string
       expense_id:
@@ -183,28 +185,28 @@ definitions:
     properties:
       email:
         type: string
-      firstName:
+      first_name:
         type: string
-      googleID:
+      google_id:
         type: string
-      lastName:
+      last_name:
         type: string
       phone:
         type: string
-      registrationDate:
+      registration_date:
         type: string
-      userID:
+      user_id:
         type: string
     type: object
   models.UserRegistrationPayload:
     properties:
       email:
         type: string
-      firstName:
+      first_name:
         type: string
-      googleID:
+      google_id:
         type: string
-      lastName:
+      last_name:
         type: string
       phone:
         type: string

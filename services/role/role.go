@@ -15,7 +15,7 @@ import (
 // the owner of the given budgetID
 func DoesUserOwnBudget(userID uuid.UUID, budgetID uuid.UUID) bool {
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT * FROM budgets WHERE owner = $1 AND budget_id = $2"
 
@@ -54,7 +54,7 @@ func AddRoleToBudget(userID uuid.UUID, budgetID uuid.UUID, role string) *errors.
 	}
 
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "INSERT INTO user_roles (user_id, role_id, budget_id) VALUES ('$1, (select role_id from roles where role_name = $2), $3)"
 

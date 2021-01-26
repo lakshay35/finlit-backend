@@ -14,7 +14,7 @@ import (
 func GetExpense(id uuid.UUID) (*models.Expense, error) {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT * FROM expenses WHERE expense_id = $1"
 
@@ -22,24 +22,26 @@ func GetExpense(id uuid.UUID) (*models.Expense, error) {
 
 	var expense models.Expense
 
-	var expense_charge_cycle_id int
-
 	err := stmt.QueryRow(id).Scan(
 		&expense.ExpenseID,
 		&expense.BudgetID,
 		&expense.ExpenseName,
 		&expense.ExpenseValue,
 		&expense.ExpenseDescription,
-		&expense_charge_cycle_id,
+		&expense.ExpenseChargeCycle.ExpenseChargeCycleID,
 	)
-
-	unit, err := GetExpenseChargeCycleName(expense_charge_cycle_id)
 
 	if err != nil {
 		panic(err)
 	}
 
-	expense.ExpenseChargeCycle = unit
+	unit, err := GetExpenseChargeCycleName(expense.ExpenseChargeCycle.ExpenseChargeCycleID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	expense.ExpenseChargeCycle.Unit = unit
 
 	if err != nil {
 		return &models.Expense{}, err
@@ -53,7 +55,7 @@ func GetExpense(id uuid.UUID) (*models.Expense, error) {
 func IsUserAdmin(budgetID uuid.UUID, userID uuid.UUID) bool {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'Full Rights')
 	AND ur.budget_id = $2`
@@ -74,7 +76,7 @@ func IsUserAdmin(budgetID uuid.UUID, userID uuid.UUID) bool {
 func IsUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'View Rights')
 	AND ur.budget_id = $2`
@@ -95,7 +97,7 @@ func IsUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
 func IsUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := `SELECT owner_id FROM budgets WHERE budget_id = $1 AND owner_id = $2`
 
@@ -115,7 +117,7 @@ func IsUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
 func GetExpenseChargeCycleID(expenseName string) (int, error) {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT expense_charge_cycle_id from expense_charge_cycles WHERE unit = $1"
 
@@ -137,7 +139,7 @@ func GetExpenseChargeCycleID(expenseName string) (int, error) {
 func GetExpenseChargeCycleName(expenseChargeCycleID int) (string, error) {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT unit from expense_charge_cycles WHERE expense_charge_cycle_id = $1"
 
@@ -158,7 +160,7 @@ func GetExpenseChargeCycleName(expenseChargeCycleID int) (string, error) {
 // Gets all the types of expense charge cycles
 func GetExpenseChargeCycles() []models.ExpenseChargeCycle {
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT * FROM expense_charge_cycles"
 
@@ -173,7 +175,11 @@ func GetExpenseChargeCycles() []models.ExpenseChargeCycle {
 	for rows.Next() {
 		var cycle models.ExpenseChargeCycle
 
-		rows.Scan(&cycle.ExpenseChargeCycleID, &cycle.Unit)
+		err = rows.Scan(&cycle.ExpenseChargeCycleID, &cycle.Unit)
+
+		if err != nil {
+			panic(err)
+		}
 
 		cycles = append(cycles, cycle)
 	}
@@ -186,7 +192,7 @@ func GetExpenseChargeCycles() []models.ExpenseChargeCycle {
 func DeleteExpense(expenseID uuid.UUID, budgetID uuid.UUID, userID uuid.UUID) *errors.Error {
 
 	// Ensure user is authorized to delete expense
-	if !IsUserOwner(budgetID, userID) && !IsUserOwner(budgetID, userID) {
+	if !IsUserOwner(budgetID, userID) && !IsUserAdmin(budgetID, userID) {
 		return &errors.Error{
 			Message:    "You do not have enough permissions to delete expenses from this budget",
 			StatusCode: http.StatusUnauthorized,
@@ -195,7 +201,7 @@ func DeleteExpense(expenseID uuid.UUID, budgetID uuid.UUID, userID uuid.UUID) *e
 
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := `DELETE FROM expenses WHERE expense_id = $1`
 
@@ -228,7 +234,7 @@ func UpdateExpense(expense *models.Expense, userID uuid.UUID) *errors.Error {
 	}
 
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := `UPDATE expenses SET budget_id = $1, expense_name = $2, expense_value = $3, expense_description = $4, expense_charge_cycle_id = (SELECT expense_charge_cycle_id FROM expense_charge_cycles where unit = $5) WHERE expense_id = $6`
 
@@ -264,9 +270,9 @@ func GetAllExpensesForBudget(budgetID uuid.UUID, userID uuid.UUID) ([]models.Exp
 	}
 
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
-	query := `SELECT expense_id, budget_id, expense_name, expense_value, expense_description, unit
+	query := `SELECT expense_id, budget_id, expense_name, expense_value, expense_description, unit, ecc.expense_charge_cycle_id
 	FROM expenses ep JOIN expense_charge_cycles ecc ON ecc.expense_charge_cycle_id = ep.expense_charge_cycle_id
 	WHERE ep.budget_id = $1`
 
@@ -282,18 +288,20 @@ func GetAllExpensesForBudget(budgetID uuid.UUID, userID uuid.UUID) ([]models.Exp
 
 	for rows.Next() {
 		var expense models.Expense
-		var unit string
 
-		rows.Scan(
+		err = rows.Scan(
 			&expense.ExpenseID,
 			&expense.BudgetID,
 			&expense.ExpenseName,
 			&expense.ExpenseValue,
 			&expense.ExpenseDescription,
-			&unit,
+			&expense.ExpenseChargeCycle.Unit,
+			&expense.ExpenseChargeCycle.ExpenseChargeCycleID,
 		)
 
-		expense.ExpenseChargeCycle = unit
+		if err != nil {
+			panic(err)
+		}
 
 		expenses = append(expenses, expense)
 	}
@@ -304,11 +312,11 @@ func GetAllExpensesForBudget(budgetID uuid.UUID, userID uuid.UUID) ([]models.Exp
 // AddExpenseToBudget ...
 // Adds expense to budget
 func AddExpenseToBudget(expense *models.Expense, userID uuid.UUID) (*models.Expense, *errors.Error) {
-	expenseChargeCycleID, err := GetExpenseChargeCycleID(expense.ExpenseChargeCycle)
+	expenseChargeCycleID, err := GetExpenseChargeCycleID(expense.ExpenseChargeCycle.Unit)
 
 	if err != nil {
 		return nil, &errors.Error{
-			Message:    "expense_charge_cycle " + expense.ExpenseChargeCycle + " is not valid",
+			Message:    "expense_charge_cycle " + expense.ExpenseChargeCycle.Unit + " is not valid",
 			StatusCode: http.StatusBadRequest,
 		}
 	}
@@ -322,7 +330,7 @@ func AddExpenseToBudget(expense *models.Expense, userID uuid.UUID) (*models.Expe
 
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := `INSERT INTO expenses (budget_id, expense_name, expense_value, expense_description, expense_charge_cycle_id
 	) VALUES ($1, $2, $3, $4, $5) RETURNING expense_id`

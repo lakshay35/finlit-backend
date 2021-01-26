@@ -1,6 +1,6 @@
 package models
 
-// TokenPayload ...
+// PublicTokenPayload ...
 type PublicTokenPayload struct {
 	Token string `json:"public_token"`
 }

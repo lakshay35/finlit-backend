@@ -39,7 +39,7 @@ func ParseBudget(c *gin.Context, res *models.Budget) error {
 // Checks if a budget exists
 func DoesBudgetExist(UserID uuid.UUID, budgetName string) bool {
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT * FROM budgets WHERE owner_id = $1 AND budget_name = $2"
 
@@ -62,7 +62,7 @@ func DoesBudgetExist(UserID uuid.UUID, budgetName string) bool {
 // on given params
 func GetBudget(userID uuid.UUID, budgetName string) models.Budget {
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT * FROM budgets WHERE owner_id = $1 AND budget_name = $2"
 
@@ -81,7 +81,11 @@ func GetBudget(userID uuid.UUID, budgetName string) models.Budget {
 
 	var res models.Budget
 
-	rows.Scan(&res.BudgetID, &res.OwnerID, &res.BudgetName)
+	err = rows.Scan(&res.BudgetID, &res.OwnerID, &res.BudgetName)
+
+	if err != nil {
+		panic(err)
+	}
 
 	return res
 }
@@ -98,7 +102,7 @@ func CreateBudget(userID uuid.UUID, budgetName string) (*models.Budget, *errors.
 
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "INSERT INTO budgets (owner_id, budget_name) VALUES ($1, $2) RETURNING owner_id, budget_name, budget_id"
 
@@ -128,7 +132,7 @@ func CreateBudget(userID uuid.UUID, budgetName string) (*models.Budget, *errors.
 // TODO: Get all budgets user owns and has access to, include access type in return object
 func GetAllBudgets(userID uuid.UUID) ([]models.Budget, *errors.Error) {
 	connection := database.GetConnection()
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT * FROM budgets where owner_id = $1"
 
@@ -151,7 +155,12 @@ func GetAllBudgets(userID uuid.UUID) ([]models.Budget, *errors.Error) {
 
 	for res.Next() {
 		var temp models.Budget
-		res.Scan(&temp.BudgetID, &temp.BudgetName, &temp.OwnerID)
+		err := res.Scan(&temp.BudgetID, &temp.BudgetName, &temp.OwnerID)
+
+		if err != nil {
+			panic(err)
+		}
+
 		// Appends the item to the result
 		result = append(result, temp)
 	}

@@ -13,15 +13,6 @@ import (
 	"github.com/plaid/plaid-go/plaid"
 )
 
-type httpError struct {
-	errorCode int
-	error     string
-}
-
-func (httpError *httpError) Error() string {
-	return httpError.error
-}
-
 // GetAccountsForAccessToken ...
 // gets account tied to access token
 // from Plaid APIS
@@ -37,10 +28,10 @@ func GetAccountsForAccessToken(accessToken string) []plaid.Account {
 
 // GetExternalAccount ...
 // Gets external account from DB
-func GetExternalAccount(accountID uuid.UUID) (string, string) {
+func GetExternalAccount(accountID uuid.UUID) (uuid.UUID, string) {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT institutional_id, access_token FROM external_accounts WHERE external_account_id = $1"
 
@@ -50,21 +41,24 @@ func GetExternalAccount(accountID uuid.UUID) (string, string) {
 		panic(err)
 	}
 
-	var institutional_id string
-	var access_token string
+	var externalAccount models.Account
 
-	stmt.QueryRow(accountID).Scan(&institutional_id, &access_token)
+	err = stmt.QueryRow(accountID).Scan(&externalAccount.ExternalAccountID, &externalAccount.AccessToken)
 
-	return institutional_id, access_token
+	if err != nil {
+		panic(err)
+	}
+
+	return externalAccount.ExternalAccountID, externalAccount.AccessToken
 }
 
 // LinkTokenCreate creates a link token using the specified parameters
 func LinkTokenCreate(
 	paymentInitiation *plaid.PaymentInitiation,
 ) (string, *errors.Error) {
-	countryCodes := strings.Split(plaidService.PLAID_COUNTRY_CODES, ",")
-	products := strings.Split(plaidService.PLAID_PRODUCTS, ",")
-	redirectURI := plaidService.PLAID_REDIRECT_URI
+	countryCodes := strings.Split(plaidService.PlaidCountryCodes, ",")
+	products := strings.Split(plaidService.PlaidProducts, ",")
+	redirectURI := plaidService.PlaidRedirectURI
 	configs := plaid.LinkTokenConfigs{
 		User: &plaid.LinkTokenUser{
 			// This should correspond to a unique id for the current user.
@@ -106,7 +100,11 @@ func GetAccountAccessToken(accountID uuid.UUID) string {
 
 	var access_token string
 
-	stmt.QueryRow(accountID).Scan(&access_token)
+	err = stmt.QueryRow(accountID).Scan(&access_token)
+
+	if err != nil {
+		panic(err)
+	}
 
 	return access_token
 }
@@ -116,7 +114,7 @@ func GetAccountAccessToken(accountID uuid.UUID) string {
 func RegisterExternalAccounts(accessToken string, userID uuid.UUID) {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "INSERT INTO external_accounts (institutional_id, access_token, account_name, user_id) VALUES ($1, $2, $3, $4)"
 
@@ -143,7 +141,7 @@ func RegisterExternalAccounts(accessToken string, userID uuid.UUID) {
 func GetAllExternalAccounts(userID uuid.UUID) ([]models.Account, *errors.Error) {
 	connection := database.GetConnection()
 
-	defer connection.Commit()
+	defer database.CloseConnection(connection)
 
 	query := "SELECT account_name, external_account_id FROM external_accounts WHERE user_id = $1"
 
@@ -168,7 +166,7 @@ func GetAllExternalAccounts(userID uuid.UUID) ([]models.Account, *errors.Error) 
 	for rows.Next() {
 		var temp models.Account
 
-		rows.Scan(&temp.AccountName, &temp.ExternalAccountID)
+		err = rows.Scan(&temp.AccountName, &temp.ExternalAccountID)
 
 		if err != nil {
 			panic(err)
@@ -220,7 +218,7 @@ func GetTransactions(
 	var transactions []plaid.Transaction
 
 	for _, tx := range response.Transactions {
-		if strings.EqualFold(tx.AccountID, institutionalID) {
+		if strings.EqualFold(tx.AccountID, institutionalID.String()) {
 			transactions = append(transactions, tx)
 		}
 	}
@@ -247,7 +245,7 @@ func GetAccountInformation(
 	var account plaid.Account
 
 	for _, act := range response.Accounts {
-		if strings.EqualFold(act.AccountID, institutionalID) {
+		if strings.EqualFold(act.AccountID, institutionalID.String()) {
 			account = act
 		}
 	}

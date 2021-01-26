@@ -34,9 +34,18 @@ func AddExpense(c *gin.Context) {
 
 	user := requests.GetUserFromContext(c)
 
-	expenseService.AddExpenseToBudget(&json, user.UserID)
+	expense, err := expenseService.AddExpenseToBudget(&json, user.UserID)
 
-	c.JSON(http.StatusCreated, json)
+	if err != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			err.Error(),
+		)
+
+		return
+	}
+	c.JSON(http.StatusCreated, expense)
 }
 
 // GetAllExpenses ..
@@ -162,6 +171,14 @@ func DeleteExpense(c *gin.Context) {
 	}
 
 	expense, err := expenseService.GetExpense(id)
+
+	if err != nil {
+		requests.ThrowError(
+			c,
+			http.StatusNotFound,
+			err.Error(),
+		)
+	}
 
 	user := requests.GetUserFromContext(c)
 
