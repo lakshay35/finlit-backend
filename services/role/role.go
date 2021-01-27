@@ -123,6 +123,8 @@ func IsUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
 func IsUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
 	connection := database.GetConnection()
 
+	defer database.CloseConnection(connection)
+
 	query := `SELECT owner_id FROM budgets WHERE budget_id = $1 AND owner_id = $2`
 
 	stmt := database.PrepareStatement(connection, query)
@@ -133,8 +135,9 @@ func IsUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
 		panic(err)
 	}
 
-	defer rows.Close()
-	defer database.CloseConnection(connection)
+	isOwner := rows.Next()
 
-	return rows.Next()
+	rows.Close()
+
+	return isOwner
 }
