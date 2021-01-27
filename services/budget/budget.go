@@ -40,7 +40,6 @@ func ParseBudget(c *gin.Context, res *models.Budget) error {
 // Checks if a budget exists
 func DoesBudgetExist(UserID uuid.UUID, budgetName string) bool {
 	connection := database.GetConnection()
-	defer database.CloseConnection(connection)
 
 	query := "SELECT * FROM budgets WHERE owner_id = $1 AND budget_name = $2"
 
@@ -55,6 +54,10 @@ func DoesBudgetExist(UserID uuid.UUID, budgetName string) bool {
 	if err != nil {
 		panic(err.Error())
 	}
+
+	defer res.Close()
+	defer database.CloseConnection(connection)
+
 	return res.Next()
 }
 
@@ -87,6 +90,8 @@ func GetBudget(userID uuid.UUID, budgetName string) models.Budget {
 	if err != nil {
 		panic(err)
 	}
+
+	rows.Close()
 
 	return res
 }
@@ -174,6 +179,8 @@ func GetAllBudgets(userID uuid.UUID) ([]models.Budget, *errors.Error) {
 		// Appends the item to the result
 		result = append(result, temp)
 	}
+
+	res.Close()
 
 	return result, nil
 }

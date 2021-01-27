@@ -187,6 +187,8 @@ func GetAllExternalAccounts(userID uuid.UUID) ([]models.Account, *errors.Error) 
 		accounts = append(accounts, temp)
 	}
 
+	rows.Close()
+
 	return accounts, nil
 }
 

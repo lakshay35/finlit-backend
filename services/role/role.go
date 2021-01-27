@@ -15,7 +15,6 @@ import (
 // the owner of the given budgetID
 func DoesUserOwnBudget(userID uuid.UUID, budgetID uuid.UUID) bool {
 	connection := database.GetConnection()
-	defer database.CloseConnection(connection)
 
 	query := "SELECT * FROM budgets WHERE owner = $1 AND budget_id = $2"
 
@@ -27,6 +26,9 @@ func DoesUserOwnBudget(userID uuid.UUID, budgetID uuid.UUID) bool {
 		fmt.Println(err.Error())
 		return false
 	}
+
+	defer rows.Close()
+	defer database.CloseConnection(connection)
 
 	return rows.Next()
 }
@@ -77,8 +79,6 @@ func AddRoleToBudget(userID uuid.UUID, budgetID uuid.UUID, role string) *errors.
 func IsUserAdmin(budgetID uuid.UUID, userID uuid.UUID) bool {
 	connection := database.GetConnection()
 
-	defer database.CloseConnection(connection)
-
 	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'Full Rights')
 	AND ur.budget_id = $2`
 
@@ -90,6 +90,9 @@ func IsUserAdmin(budgetID uuid.UUID, userID uuid.UUID) bool {
 		panic(err)
 	}
 
+	defer rows.Close()
+	defer database.CloseConnection(connection)
+
 	return rows.Next()
 }
 
@@ -97,8 +100,6 @@ func IsUserAdmin(budgetID uuid.UUID, userID uuid.UUID) bool {
 // Determines if user is an admin on the given budget
 func IsUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
 	connection := database.GetConnection()
-
-	defer database.CloseConnection(connection)
 
 	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'View Rights')
 	AND ur.budget_id = $2`
@@ -111,6 +112,9 @@ func IsUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
 		panic(err)
 	}
 
+	defer rows.Close()
+	defer database.CloseConnection(connection)
+
 	return rows.Next()
 }
 
@@ -118,8 +122,6 @@ func IsUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
 // Checks if user is an owner
 func IsUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
 	connection := database.GetConnection()
-
-	defer database.CloseConnection(connection)
 
 	query := `SELECT owner_id FROM budgets WHERE budget_id = $1 AND owner_id = $2`
 
@@ -130,6 +132,9 @@ func IsUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
 	if err != nil {
 		panic(err)
 	}
+
+	defer rows.Close()
+	defer database.CloseConnection(connection)
 
 	return rows.Next()
 }

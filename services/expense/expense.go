@@ -123,6 +123,8 @@ func GetExpenseChargeCycles() []models.ExpenseChargeCycle {
 		cycles = append(cycles, cycle)
 	}
 
+	rows.Close()
+
 	return cycles
 }
 
@@ -278,6 +280,8 @@ func GetAllExpensesForBudget(budgetID uuid.UUID, userID uuid.UUID) ([]models.Exp
 
 		expenses = append(expenses, expense)
 	}
+
+	rows.Close()
 
 	return expenses, nil
 }
