@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -109,7 +110,12 @@ func GetTransactions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, transactions)
+	fmt.Println(transactions)
+
+	c.JSON(
+		http.StatusOK,
+		transactions,
+	)
 }
 
 // CreateLinkToken ...

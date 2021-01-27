@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	uuid "github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	budgetService "github.com/lakshay35/finlit-backend/services/budget"
 	"github.com/lakshay35/finlit-backend/utils/requests"
@@ -74,4 +75,47 @@ func GetBudgets(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+// DeleteBudget ...
+// @Summary Get Budgets
+// @Description Gets a list of all budgets current user is a part of
+// @Tags Budgets
+// @Accept  json
+// @Produce  json
+// @Security Google AccessToken
+// @Param Budget-ID header string true "Budget ID to delete"
+// @Success 200 {array} models.Budget
+// @Failure 403 {object} models.Error
+// @Failure 400 {object} models.Error
+// @Router /budget/delete [delete]
+func DeleteBudget(c *gin.Context) {
+
+	budgetID, err := uuid.Parse(c.GetHeader("Budget-ID"))
+
+	if err != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			"Header 'Budget-ID' must contain a valid uuid",
+		)
+
+		return
+	}
+
+	user := requests.GetUserFromContext(c)
+
+	errr := budgetService.DeleteBudget(budgetID, user.UserID)
+
+	if errr != nil {
+		requests.ThrowError(
+			c,
+			errr.StatusCode,
+			errr.Error(),
+		)
+
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

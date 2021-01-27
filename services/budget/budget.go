@@ -6,11 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	"github.com/lakshay35/finlit-backend/models/errors"
-
-	"github.com/gin-gonic/gin"
+	expenseService "github.com/lakshay35/finlit-backend/services/expense"
+	roleService "github.com/lakshay35/finlit-backend/services/role"
 	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
@@ -100,6 +101,13 @@ func CreateBudget(userID uuid.UUID, budgetName string) (*models.Budget, *errors.
 		}
 	}
 
+	if budgetName == "" {
+		return nil, &errors.Error{
+			Message:    "Budget name need to be a non-empty string",
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
 	connection := database.GetConnection()
 
 	defer database.CloseConnection(connection)
@@ -119,6 +127,8 @@ func CreateBudget(userID uuid.UUID, budgetName string) (*models.Budget, *errors.
 		&result.BudgetName,
 		&result.BudgetID,
 	)
+
+	fmt.Println(result)
 
 	if errr != nil {
 		panic(errr)
@@ -166,4 +176,43 @@ func GetAllBudgets(userID uuid.UUID) ([]models.Budget, *errors.Error) {
 	}
 
 	return result, nil
+}
+
+// DeleteBudget ...
+// Deletes budget an all associated expenses
+func DeleteBudget(budgetID uuid.UUID, userID uuid.UUID) *errors.Error {
+	if !roleService.IsUserOwner(budgetID, userID) {
+		return &errors.Error{
+			Message:    "User requesting deletion needs to be the owner of budget to proceed",
+			StatusCode: http.StatusUnauthorized,
+		}
+	}
+
+	err := expenseService.DeleteAllBudgetExpenses(budgetID, userID)
+
+	if err != nil {
+		return err
+	}
+
+	connection := database.GetConnection()
+	defer database.CloseConnection(connection)
+
+	query := "DELETE FROM budgets where budget_id = $1"
+
+	stmt, errr := connection.Prepare(query)
+
+	if errr != nil {
+		panic("Error preparing query for deleting budgets")
+	}
+
+	_, errrr := stmt.Exec(budgetID)
+
+	if errrr != nil {
+		return &errors.Error{
+			Message:    errr.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	return nil
 }

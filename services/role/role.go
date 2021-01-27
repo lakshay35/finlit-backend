@@ -71,3 +71,65 @@ func AddRoleToBudget(userID uuid.UUID, budgetID uuid.UUID, role string) *errors.
 
 	return nil
 }
+
+// IsUserAdmin ...
+// Determines if user is an admin on the given budget
+func IsUserAdmin(budgetID uuid.UUID, userID uuid.UUID) bool {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'Full Rights')
+	AND ur.budget_id = $2`
+
+	stmt := database.PrepareStatement(connection, query)
+
+	rows, err := stmt.Query(userID, budgetID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return rows.Next()
+}
+
+// IsUserViewer ...
+// Determines if user is an admin on the given budget
+func IsUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'View Rights')
+	AND ur.budget_id = $2`
+
+	stmt := database.PrepareStatement(connection, query)
+
+	rows, err := stmt.Query(userID, budgetID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return rows.Next()
+}
+
+// IsUserOwner ...
+// Checks if user is an owner
+func IsUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := `SELECT owner_id FROM budgets WHERE budget_id = $1 AND owner_id = $2`
+
+	stmt := database.PrepareStatement(connection, query)
+
+	rows, err := stmt.Query(budgetID, userID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return rows.Next()
+}

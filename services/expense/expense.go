@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	"github.com/lakshay35/finlit-backend/models/errors"
+	roleService "github.com/lakshay35/finlit-backend/services/role"
 	"github.com/lakshay35/finlit-backend/utils/database"
 )
 
@@ -48,68 +49,6 @@ func GetExpense(id uuid.UUID) (*models.Expense, error) {
 	}
 
 	return &expense, nil
-}
-
-// IsUserAdmin ...
-// Determines if user is an admin on the given budget
-func IsUserAdmin(budgetID uuid.UUID, userID uuid.UUID) bool {
-	connection := database.GetConnection()
-
-	defer database.CloseConnection(connection)
-
-	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'Full Rights')
-	AND ur.budget_id = $2`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	rows, err := stmt.Query(userID, budgetID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return rows.Next()
-}
-
-// IsUserViewer ...
-// Determines if user is an admin on the given budget
-func IsUserViewer(budgetID uuid.UUID, userID uuid.UUID) bool {
-	connection := database.GetConnection()
-
-	defer database.CloseConnection(connection)
-
-	query := `SELECT * FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = (SELECT role_id FROM roles WHERE role_name = 'View Rights')
-	AND ur.budget_id = $2`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	rows, err := stmt.Query(userID, budgetID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return rows.Next()
-}
-
-// IsUserOwner ...
-// Checks if user is an owner
-func IsUserOwner(budgetID uuid.UUID, userID uuid.UUID) bool {
-	connection := database.GetConnection()
-
-	defer database.CloseConnection(connection)
-
-	query := `SELECT owner_id FROM budgets WHERE budget_id = $1 AND owner_id = $2`
-
-	stmt := database.PrepareStatement(connection, query)
-
-	rows, err := stmt.Query(budgetID, userID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return rows.Next()
 }
 
 // GetExpenseChargeCycleID ...
@@ -192,7 +131,7 @@ func GetExpenseChargeCycles() []models.ExpenseChargeCycle {
 func DeleteExpense(expenseID uuid.UUID, budgetID uuid.UUID, userID uuid.UUID) *errors.Error {
 
 	// Ensure user is authorized to delete expense
-	if !IsUserOwner(budgetID, userID) && !IsUserAdmin(budgetID, userID) {
+	if !roleService.IsUserOwner(budgetID, userID) && !roleService.IsUserAdmin(budgetID, userID) {
 		return &errors.Error{
 			Message:    "You do not have enough permissions to delete expenses from this budget",
 			StatusCode: http.StatusUnauthorized,
@@ -221,12 +160,46 @@ func DeleteExpense(expenseID uuid.UUID, budgetID uuid.UUID, userID uuid.UUID) *e
 	return nil
 }
 
+// DeleteAllBudgetExpenses ...
+// Deletes expense based on id
+func DeleteAllBudgetExpenses(budgetID uuid.UUID, userID uuid.UUID) *errors.Error {
+
+	// Ensure user is authorized to delete expense
+	if !roleService.IsUserOwner(budgetID, userID) {
+		return &errors.Error{
+			Message:    "You do not have enough permissions to delete all expenses from this budget",
+			StatusCode: http.StatusUnauthorized,
+		}
+	}
+
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := `DELETE FROM expenses WHERE budget_id = $1`
+
+	stmt := database.PrepareStatement(connection, query)
+
+	_, err := stmt.Exec(
+		budgetID,
+	)
+
+	if err != nil {
+		return &errors.Error{
+			Message:    err.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	return nil
+}
+
 // UpdateExpense ...
 // Updates expense if user is owner or admin
 func UpdateExpense(expense *models.Expense, userID uuid.UUID) *errors.Error {
 
 	// Ensure user is authorized to update expense
-	if !IsUserOwner(expense.BudgetID, userID) && !IsUserAdmin(expense.BudgetID, userID) {
+	if !roleService.IsUserOwner(expense.BudgetID, userID) && !roleService.IsUserAdmin(expense.BudgetID, userID) {
 		return &errors.Error{
 			Message:    "You do not have enough permissions to add expenses to this budget",
 			StatusCode: http.StatusUnauthorized,
@@ -262,7 +235,7 @@ func UpdateExpense(expense *models.Expense, userID uuid.UUID) *errors.Error {
 // GetAllExpensesForBudget ...
 // Gets all expenses for a specific budgetID
 func GetAllExpensesForBudget(budgetID uuid.UUID, userID uuid.UUID) ([]models.Expense, *errors.Error) {
-	if !IsUserAdmin(budgetID, userID) && !IsUserOwner(budgetID, userID) {
+	if !roleService.IsUserAdmin(budgetID, userID) && !roleService.IsUserOwner(budgetID, userID) {
 		return nil, &errors.Error{
 			Message:    "You do not have enough permissions to view expenses of this budget",
 			StatusCode: http.StatusUnauthorized,
@@ -321,7 +294,7 @@ func AddExpenseToBudget(expense *models.Expense, userID uuid.UUID) (*models.Expe
 		}
 	}
 
-	if !IsUserAdmin(expense.BudgetID, userID) && !IsUserOwner(expense.BudgetID, userID) {
+	if !roleService.IsUserAdmin(expense.BudgetID, userID) && !roleService.IsUserOwner(expense.BudgetID, userID) {
 		return nil, &errors.Error{
 			Message:    "You do not have enough permissions to add expenses to this budget",
 			StatusCode: http.StatusUnauthorized,

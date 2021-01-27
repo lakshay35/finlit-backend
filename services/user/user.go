@@ -1,7 +1,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/lakshay35/finlit-backend/models"
@@ -16,7 +15,7 @@ func GetUser(googleID string) (*models.User, *errors.Error) {
 	defer database.CloseConnection(tx)
 
 	stmt := database.PrepareStatement(tx, "SELECT * FROM users where google_id = $1")
-	fmt.Println("searching for user with googleID", googleID)
+
 	res, err := stmt.Query(googleID)
 
 	if err != nil || !res.Next() {

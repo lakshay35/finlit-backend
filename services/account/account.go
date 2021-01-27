@@ -28,12 +28,12 @@ func GetAccountsForAccessToken(accessToken string) []plaid.Account {
 
 // GetExternalAccount ...
 // Gets external account from DB
-func GetExternalAccount(accountID uuid.UUID) (uuid.UUID, string) {
+func GetExternalAccount(accountID uuid.UUID) models.Account {
 	connection := database.GetConnection()
 
 	defer database.CloseConnection(connection)
 
-	query := "SELECT institutional_id, access_token FROM external_accounts WHERE external_account_id = $1"
+	query := "SELECT * FROM external_accounts WHERE external_account_id = $1"
 
 	stmt, err := connection.Prepare(query)
 
@@ -43,13 +43,19 @@ func GetExternalAccount(accountID uuid.UUID) (uuid.UUID, string) {
 
 	var externalAccount models.Account
 
-	err = stmt.QueryRow(accountID).Scan(&externalAccount.ExternalAccountID, &externalAccount.AccessToken)
+	err = stmt.QueryRow(accountID).Scan(
+		&externalAccount.ExternalAccountID,
+		&externalAccount.InstitutionalID,
+		&externalAccount.UserID,
+		&externalAccount.AccessToken,
+		&externalAccount.AccountName,
+	)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return externalAccount.ExternalAccountID, externalAccount.AccessToken
+	return externalAccount
 }
 
 // LinkTokenCreate creates a link token using the specified parameters
@@ -143,7 +149,7 @@ func GetAllExternalAccounts(userID uuid.UUID) ([]models.Account, *errors.Error) 
 
 	defer database.CloseConnection(connection)
 
-	query := "SELECT account_name, external_account_id FROM external_accounts WHERE user_id = $1"
+	query := "SELECT * FROM external_accounts WHERE user_id = $1"
 
 	stmt, err := connection.Prepare(query)
 
@@ -166,7 +172,13 @@ func GetAllExternalAccounts(userID uuid.UUID) ([]models.Account, *errors.Error) 
 	for rows.Next() {
 		var temp models.Account
 
-		err = rows.Scan(&temp.AccountName, &temp.ExternalAccountID)
+		err = rows.Scan(
+			&temp.ExternalAccountID,
+			&temp.InstitutionalID,
+			&temp.UserID,
+			&temp.AccessToken,
+			&temp.AccountName,
+		)
 
 		if err != nil {
 			panic(err)
@@ -204,9 +216,9 @@ func GetTransactions(
 	endDate string,
 ) ([]plaid.Transaction, *errors.Error) {
 
-	institutionalID, accessToken := GetExternalAccount(externalAccountID)
+	externalAccount := GetExternalAccount(externalAccountID)
 
-	response, err := plaidService.PlaidClient().GetTransactions(accessToken, startDate, endDate)
+	response, err := plaidService.PlaidClient().GetTransactions(externalAccount.AccessToken, startDate, endDate)
 
 	if err != nil {
 		return nil, &errors.Error{
@@ -218,7 +230,7 @@ func GetTransactions(
 	var transactions []plaid.Transaction
 
 	for _, tx := range response.Transactions {
-		if strings.EqualFold(tx.AccountID, institutionalID.String()) {
+		if strings.EqualFold(tx.AccountID, externalAccount.InstitutionalID) {
 			transactions = append(transactions, tx)
 		}
 	}
@@ -231,9 +243,9 @@ func GetTransactions(
 func GetAccountInformation(
 	externalAccountID uuid.UUID,
 ) (*plaid.Account, *errors.Error) {
-	institutionalID, accessToken := GetExternalAccount(externalAccountID)
+	externalAccount := GetExternalAccount(externalAccountID)
 
-	response, err := plaidService.PlaidClient().GetAccounts(accessToken)
+	response, err := plaidService.PlaidClient().GetAccounts(externalAccount.AccessToken)
 
 	if err != nil {
 		return nil, &errors.Error{
@@ -245,9 +257,12 @@ func GetAccountInformation(
 	var account plaid.Account
 
 	for _, act := range response.Accounts {
-		if strings.EqualFold(act.AccountID, institutionalID.String()) {
+		if strings.EqualFold(act.AccountID, externalAccount.InstitutionalID) {
 			account = act
 		}
 	}
+
+	fmt.Println(account)
+
 	return &account, nil
 }

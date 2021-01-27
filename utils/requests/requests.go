@@ -57,3 +57,12 @@ func GetUserIDFromContext(c *gin.Context) string {
 
 	return user.(string)
 }
+
+// ParseHeaders ...
+// Parses list of headers from request
+// func ParseHeaders(c *gin.Context, headers ...string) ([]string, *errors.Error) {
+
+// 	for i, header := range headers {
+// 		budgetID := c.GetHeader(header)
+// 	}
+// }

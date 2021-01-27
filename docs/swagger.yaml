@@ -7,6 +7,10 @@ definitions:
         type: string
       external_account_id:
         type: string
+      institutional_id:
+        type: string
+      user_id:
+        type: string
     type: object
   models.Budget:
     properties:
@@ -407,6 +411,39 @@ paths:
       security:
       - Google AccessToken: []
       summary: Create a budget
+      tags:
+      - Budgets
+  /budget/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Gets a list of all budgets current user is a part of
+      parameters:
+      - description: Budget ID to delete
+        in: header
+        name: Budget-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Budget'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Get Budgets
       tags:
       - Budgets
   /budget/get:

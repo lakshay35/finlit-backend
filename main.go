@@ -69,6 +69,7 @@ func main() {
 		{
 			budget.GET("/get", routes.GetBudgets)
 			budget.POST("/create", routes.CreateBudget)
+			budget.DELETE("/delete", routes.DeleteBudget)
 		}
 		user := api.Group("/user")
 		{

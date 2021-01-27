@@ -334,6 +334,58 @@ var doc = `{
                 }
             }
         },
+        "/budget/delete": {
+            "delete": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Gets a list of all budgets current user is a part of",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Budgets"
+                ],
+                "summary": "Get Budgets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Budget ID to delete",
+                        "name": "Budget-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Budget"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/budget/get": {
             "get": {
                 "security": [
@@ -778,6 +830,12 @@ var doc = `{
                     "type": "string"
                 },
                 "external_account_id": {
+                    "type": "string"
+                },
+                "institutional_id": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }
