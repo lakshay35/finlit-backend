@@ -41,6 +41,8 @@ func GetUser(googleID string) (*models.User, *errors.Error) {
 		panic(err)
 	}
 
+	res.Close()
+
 	return &userResult, nil
 }
 
