@@ -1,6 +1,7 @@
 package expense
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -8,6 +9,7 @@ import (
 	"github.com/lakshay35/finlit-backend/models/errors"
 	roleService "github.com/lakshay35/finlit-backend/services/role"
 	"github.com/lakshay35/finlit-backend/utils/database"
+	"github.com/shopspring/decimal"
 )
 
 // GetExpense ...
@@ -22,6 +24,8 @@ func GetExpense(id uuid.UUID) (*models.Expense, error) {
 	stmt := database.PrepareStatement(connection, query)
 
 	var expense models.Expense
+
+	fmt.Println("Querying for expenses with id ", id)
 
 	err := stmt.QueryRow(id).Scan(
 		&expense.ExpenseID,
@@ -218,13 +222,14 @@ func UpdateExpense(expense *models.Expense, userID uuid.UUID) *errors.Error {
 	_, err := stmt.Exec(
 		expense.BudgetID,
 		expense.ExpenseName,
-		expense.ExpenseValue,
+		decimal.NewFromFloat32(expense.ExpenseValue).DivRound(decimal.NewFromInt(1), 2),
 		expense.ExpenseDescription,
-		expense.ExpenseChargeCycle,
+		expense.ExpenseChargeCycle.Unit,
 		expense.ExpenseID,
 	)
 
 	if err != nil {
+		fmt.Println(err.Error())
 		return &errors.Error{
 			Message:    err.Error(),
 			StatusCode: http.StatusBadRequest,
@@ -288,7 +293,7 @@ func GetAllExpensesForBudget(budgetID uuid.UUID, userID uuid.UUID) ([]models.Exp
 
 // AddExpenseToBudget ...
 // Adds expense to budget
-func AddExpenseToBudget(expense *models.Expense, userID uuid.UUID) (*models.Expense, *errors.Error) {
+func AddExpenseToBudget(expense *models.AddExpensePayload, userID uuid.UUID) (*models.Expense, *errors.Error) {
 	expenseChargeCycleID, err := GetExpenseChargeCycleID(expense.ExpenseChargeCycle.Unit)
 
 	if err != nil {
@@ -314,17 +319,26 @@ func AddExpenseToBudget(expense *models.Expense, userID uuid.UUID) (*models.Expe
 
 	stmt := database.PrepareStatement(connection, query)
 
-	err = stmt.QueryRow(
+	var expenseResult = models.Expense{
+		BudgetID:           expense.BudgetID,
+		ExpenseName:        expense.ExpenseName,
+		ExpenseValue:       expense.ExpenseValue,
+		ExpenseDescription: expense.ExpenseDescription,
+		ExpenseChargeCycle: expense.ExpenseChargeCycle,
+	}
+
+	dbError := stmt.QueryRow(
 		expense.BudgetID,
 		expense.ExpenseName,
 		expense.ExpenseValue,
 		expense.ExpenseDescription,
 		expenseChargeCycleID,
-	).Scan(&expense.ExpenseID)
+	).Scan(&expenseResult.ExpenseID)
 
-	if err != nil {
+	if dbError != nil {
+		fmt.Println(dbError.Error())
 		panic("Something went wrong while adding expense")
 	}
 
-	return expense, nil
+	return &expenseResult, nil
 }

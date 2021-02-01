@@ -31,7 +31,11 @@ func CreateBudget(c *gin.Context) {
 		return
 	}
 
-	user := requests.GetUserFromContext(c)
+	user, err := requests.GetUserFromContext(c)
+
+	if err != nil {
+		panic(err)
+	}
 
 	budget, budgetCreationError := budgetService.CreateBudget(user.UserID, json.BudgetName)
 
@@ -60,7 +64,11 @@ func CreateBudget(c *gin.Context) {
 // @Router /budget/get [get]
 func GetBudgets(c *gin.Context) {
 
-	user := requests.GetUserFromContext(c)
+	user, err := requests.GetUserFromContext(c)
+
+	if err != nil {
+		panic(err)
+	}
 
 	result, err := budgetService.GetAllBudgets(user.UserID)
 
@@ -103,7 +111,11 @@ func DeleteBudget(c *gin.Context) {
 		return
 	}
 
-	user := requests.GetUserFromContext(c)
+	user, err := requests.GetUserFromContext(c)
+
+	if err != nil {
+		panic(err)
+	}
 
 	errr := budgetService.DeleteBudget(budgetID, user.UserID)
 

@@ -55,7 +55,11 @@ func RegisterUser(c *gin.Context) {
 // @Failure 404 {object} models.Error
 // @Router /user/get [get]
 func GetUserProfile(c *gin.Context) {
-	user := requests.GetUserFromContext(c)
+	user, err := requests.GetUserFromContext(c)
+
+	if err != nil {
+		panic(err)
+	}
 
 	res, err := userService.GetUser(user.GoogleID)
 

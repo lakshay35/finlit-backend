@@ -2,9 +2,11 @@ package requests
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lakshay35/finlit-backend/models"
+	"github.com/lakshay35/finlit-backend/models/errors"
 )
 
 // ThrowError ...
@@ -36,26 +38,36 @@ func ParseBody(c *gin.Context, res interface{}) error {
 
 // GetUserFromContext ...
 // Returns user object form context
-func GetUserFromContext(c *gin.Context) models.User {
+func GetUserFromContext(c *gin.Context) (*models.User, *errors.Error) {
 	user, exists := c.Get("USER")
 
 	if !exists {
-		panic("USER DOES NOT EXIST IN CONTEXT")
+		return nil, &errors.Error{
+			Message:    "USER DOES NOT EXIST IN CONTEXT",
+			StatusCode: http.StatusNotFound,
+		}
 	}
 
-	return user.(models.User)
+	userObj := user.(models.User)
+	fmt.Println("returning user", userObj.GoogleID)
+	return &userObj, nil
 }
 
 // GetUserIDFromContext ...
 // Returns user object form context
-func GetUserIDFromContext(c *gin.Context) string {
+func GetUserIDFromContext(c *gin.Context) (*string, *errors.Error) {
 	user, exists := c.Get("USERID")
 
 	if !exists {
-		panic("USERID DOES NOT EXIST IN CONTEXT")
+		return nil, &errors.Error{
+			Message:    "USERID DOES NOT EXIST IN CONTEXT",
+			StatusCode: http.StatusNotFound,
+		}
 	}
 
-	return user.(string)
+	userID := user.(string)
+
+	return &userID, nil
 }
 
 // ParseHeaders ...

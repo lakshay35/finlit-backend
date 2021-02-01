@@ -12,6 +12,19 @@ definitions:
       user_id:
         type: string
     type: object
+  models.AddExpensePayload:
+    properties:
+      budget_id:
+        type: string
+      expense_charge_cycle:
+        $ref: '#/definitions/models.ExpenseChargeCycle'
+      expense_description:
+        type: string
+      expense_name:
+        type: string
+      expense_value:
+        type: number
+    type: object
   models.Budget:
     properties:
       budget_id:
@@ -480,7 +493,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Expense'
+          $ref: '#/definitions/models.AddExpensePayload'
       produces:
       - application/json
       responses:
@@ -614,8 +627,8 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
           schema:
             $ref: '#/definitions/models.Expense'
         "400":

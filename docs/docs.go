@@ -448,7 +448,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Expense"
+                            "$ref": "#/definitions/models.AddExpensePayload"
                         }
                     }
                 ],
@@ -657,8 +657,8 @@ var doc = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content",
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.Expense"
                         }
@@ -837,6 +837,26 @@ var doc = `{
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "models.AddExpensePayload": {
+            "type": "object",
+            "properties": {
+                "budget_id": {
+                    "type": "string"
+                },
+                "expense_charge_cycle": {
+                    "$ref": "#/definitions/models.ExpenseChargeCycle"
+                },
+                "expense_description": {
+                    "type": "string"
+                },
+                "expense_name": {
+                    "type": "string"
+                },
+                "expense_value": {
+                    "type": "number"
                 }
             }
         },

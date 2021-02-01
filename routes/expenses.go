@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,7 @@ import (
 // @Tags Budget Expenses
 // @Accept  json
 // @Produce  json
-// @Param body body models.Expense true "Expense payload representing entity to be created"
+// @Param body body models.AddExpensePayload true "Expense payload representing entity to be created"
 // @Security Google AccessToken
 // @Success 201 {object} models.Expense
 // @Failure 403 {object} models.Error
@@ -25,18 +26,22 @@ import (
 // @Router /expense/add [post]
 func AddExpense(c *gin.Context) {
 
-	var json models.Expense
+	var json models.AddExpensePayload
 	err := requests.ParseBody(c, &json)
 
 	if err != nil {
 		return
 	}
 
-	user := requests.GetUserFromContext(c)
+	user, getUserError := requests.GetUserFromContext(c)
 
-	expense, err := expenseService.AddExpenseToBudget(&json, user.UserID)
+	if getUserError != nil {
+		panic(err)
+	}
 
-	if err != nil {
+	expense, addExpenseError := expenseService.AddExpenseToBudget(&json, user.UserID)
+
+	if addExpenseError != nil {
 		requests.ThrowError(
 			c,
 			http.StatusBadRequest,
@@ -74,7 +79,12 @@ func GetAllExpenses(c *gin.Context) {
 		return
 	}
 
-	user := requests.GetUserFromContext(c)
+	user, errr := requests.GetUserFromContext(c)
+
+	if errr != nil {
+		fmt.Println(err.Error())
+		panic(err)
+	}
 
 	expenses, getExpensesError := expenseService.GetAllExpensesForBudget(budgetID, user.UserID)
 
@@ -98,7 +108,7 @@ func GetAllExpenses(c *gin.Context) {
 // @Produce  json
 // @Param body body models.Expense true "Expense payload representing entity to be updated"
 // @Security Google AccessToken
-// @Success 204 {object} models.Expense
+// @Success 200 {object} models.Expense
 // @Failure 403 {object} models.Error
 // @Failure 401 {object} models.Error
 // @Failure 404 {object} models.Error
@@ -114,8 +124,8 @@ func UpdateExpense(c *gin.Context) {
 	}
 
 	// Ensure expense exists
-	_, err = expenseService.GetExpense(json.ExpenseID)
-	if err != nil {
+	_, getExpenseError := expenseService.GetExpense(json.ExpenseID)
+	if getExpenseError != nil {
 		requests.ThrowError(
 			c,
 			http.StatusNotFound,
@@ -124,7 +134,11 @@ func UpdateExpense(c *gin.Context) {
 		return
 	}
 
-	user := requests.GetUserFromContext(c)
+	user, getUserError := requests.GetUserFromContext(c)
+
+	if getUserError != nil {
+		panic(err)
+	}
 
 	updateExpenseError := expenseService.UpdateExpense(
 		&json,
@@ -141,7 +155,7 @@ func UpdateExpense(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusNoContent, json)
+	c.JSON(http.StatusOK, json)
 }
 
 // DeleteExpense ..
@@ -158,29 +172,33 @@ func UpdateExpense(c *gin.Context) {
 // @Failure 400 {object} models.Error
 // @Router /expense/delete/{id} [delete]
 func DeleteExpense(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, parseError := uuid.Parse(c.Param("id"))
 
-	if err != nil {
+	if parseError != nil {
 		requests.ThrowError(
 			c,
 			http.StatusBadRequest,
-			err.Error(),
+			parseError.Error(),
 		)
 
 		return
 	}
 
-	expense, err := expenseService.GetExpense(id)
+	expense, getExpenseError := expenseService.GetExpense(id)
 
-	if err != nil {
+	if getExpenseError != nil {
 		requests.ThrowError(
 			c,
 			http.StatusNotFound,
-			err.Error(),
+			getExpenseError.Error(),
 		)
 	}
 
-	user := requests.GetUserFromContext(c)
+	user, getUserError := requests.GetUserFromContext(c)
+
+	if getUserError != nil {
+		panic(getUserError)
+	}
 
 	deleteExpenseError := expenseService.DeleteExpense(id, expense.BudgetID, user.UserID)
 

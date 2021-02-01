@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.74.0 // indirect
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.6.3
@@ -15,6 +16,7 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.9.0
 	github.com/plaid/plaid-go v0.0.0-20200709194030-6e8fcb95e5e9
+	github.com/shopspring/decimal v1.2.0
 	github.com/swaggo/files v0.0.0-20190704085106-630677cd5c14
 	github.com/swaggo/gin-swagger v1.3.0
 	github.com/swaggo/swag v1.7.0

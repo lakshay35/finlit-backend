@@ -158,7 +158,12 @@ func CreateLinkToken(c *gin.Context) {
 // @Failure 404 {object} models.Error
 // @Router /account/get [get]
 func GetAllAccounts(c *gin.Context) {
-	user := requests.GetUserFromContext(c)
+	user, err := requests.GetUserFromContext(c)
+
+	if err != nil {
+		panic(err)
+	}
+
 	accounts, err := accountsService.GetAllExternalAccounts(user.UserID)
 
 	if err != nil {
@@ -197,7 +202,11 @@ func RegisterAccessToken(c *gin.Context) {
 		return
 	}
 
-	user := requests.GetUserFromContext(c)
+	user, err := requests.GetUserFromContext(c)
+
+	if err != nil {
+		panic(err)
+	}
 
 	accessTokenError := accountsService.RegisterAccessToken(json.Token, user.UserID)
 

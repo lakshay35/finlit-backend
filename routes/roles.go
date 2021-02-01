@@ -30,7 +30,11 @@ func AddUserRoleToBudget(c *gin.Context) {
 		return
 	}
 
-	user := requests.GetUserFromContext(c)
+	user, err := requests.GetUserFromContext(c)
+
+	if err != nil {
+		panic(err)
+	}
 
 	err = roleService.AddRoleToBudget(user.UserID, json.BudgetID, json.Role)
 
