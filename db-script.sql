@@ -73,3 +73,11 @@ CREATE TABLE IF NOT EXISTS user_roles (
       REFERENCES roles (role_id)
 );
 
+
+insert into expense_charge_cycles (unit) VALUES ('annually') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('semi-annually') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('monthly') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('semi-monthly') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('bi-weekly') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('weekly') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('daily') on conflict do nothing;

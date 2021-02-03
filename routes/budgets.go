@@ -31,9 +31,9 @@ func CreateBudget(c *gin.Context) {
 		return
 	}
 
-	user, err := requests.GetUserFromContext(c)
+	user, getUserErr := requests.GetUserFromContext(c)
 
-	if err != nil {
+	if getUserErr != nil {
 		panic(err)
 	}
 
