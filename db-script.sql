@@ -9,20 +9,23 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS roles (
-  role_id SERIAL PRIMARY KEY,
+  role_id SERIAL PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   role_name VARCHAR (50) UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS audit_objects (
-  audit_object_id SERIAL PRIMARY KEY,
-  audit_object_name VARCHAR (255) NOT NULL,
-  foreign_id VARCHAR (255) NOT NULL
-);
+insert into roles (role_name) VALUES ('Full Rights') on conflict do nothing;
+insert into roles (role_name) VALUES ('View Rights') on conflict do nothing;
 
-CREATE TABLE IF NOT EXISTS audit_types (
-  audit_type_id SERIAL PRIMARY KEY,
-  audit_type_name VARCHAR (255) NOT NULL
-);
+-- CREATE TABLE IF NOT EXISTS audit_objects (
+--   audit_object_id SERIAL PRIMARY KEY,
+--   audit_object_name VARCHAR (255) NOT NULL,
+--   foreign_id VARCHAR (255) NOT NULL
+-- );
+
+-- CREATE TABLE IF NOT EXISTS audit_types (
+--   audit_type_id SERIAL PRIMARY KEY,
+--   audit_type_name VARCHAR (255) NOT NULL
+-- );
 
 CREATE TABLE IF NOT EXISTS external_accounts (
   external_account_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -46,6 +49,14 @@ CREATE TABLE IF NOT EXISTS expense_charge_cycles (
   expense_charge_cycle_id SERIAL PRIMARY KEY,
   unit VARCHAR (50) NOT NULL UNIQUE,
 );
+
+insert into expense_charge_cycles (unit) VALUES ('annually') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('semi-annually') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('monthly') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('semi-monthly') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('bi-weekly') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('weekly') on conflict do nothing;
+insert into expense_charge_cycles (unit) VALUES ('daily') on conflict do nothing;
 
 CREATE TABLE IF NOT EXISTS	 expenses (
   expense_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -74,10 +85,28 @@ CREATE TABLE IF NOT EXISTS user_roles (
 );
 
 
-insert into expense_charge_cycles (unit) VALUES ('annually') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('semi-annually') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('monthly') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('semi-monthly') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('bi-weekly') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('weekly') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('daily') on conflict do nothing;
+CREATE TABLE IF NOT EXISTS budget_transaction_sources (
+  budget_transaction_source_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  external_account_id UUID,
+  budget_id UUID,
+  FOREIGN KEY (external_account_id)
+    REFERENCES external_acounts (external_account_id),
+  FOREIGN KEY (budget_id)
+    REFERENCES budgets (budget_id)
+)
+
+CREATE TABLE IF NOT EXISTS budget_transaction_categories (
+  budget_transaction_category_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  budget_id UUID,
+  category_name VARCHAR(255),
+  FOREIGN KEY (budget_id)
+    REFERENCES budgets (budget_id)
+)
+
+CREATE TABLE IF NOT EXISTS budget_transaction_category_transactions (
+  budget_transaction_cateogry_transaction_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  budget_transaction_category_id UUID,
+  transaction_id VARCHAR (255)
+  FOREIGN KEY (budget_transaction_category_id)
+    REFERENCES budget_transaction_categories (budget_transaction_category_id)
+)

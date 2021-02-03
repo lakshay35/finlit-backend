@@ -99,9 +99,9 @@ func GetBudgets(c *gin.Context) {
 // @Router /budget/delete [delete]
 func DeleteBudget(c *gin.Context) {
 
-	budgetID, err := uuid.Parse(c.GetHeader("Budget-ID"))
+	budgetID, budgetIdError := uuid.Parse(c.GetHeader("Budget-ID"))
 
-	if err != nil {
+	if budgetIdError != nil {
 		requests.ThrowError(
 			c,
 			http.StatusBadRequest,
@@ -111,19 +111,19 @@ func DeleteBudget(c *gin.Context) {
 		return
 	}
 
-	user, err := requests.GetUserFromContext(c)
+	user, getUserErr := requests.GetUserFromContext(c)
 
-	if err != nil {
-		panic(err)
+	if getUserErr != nil {
+		panic(getUserErr)
 	}
 
-	errr := budgetService.DeleteBudget(budgetID, user.UserID)
+	deleteBudgetError := budgetService.DeleteBudget(budgetID, user.UserID)
 
-	if errr != nil {
+	if deleteBudgetError != nil {
 		requests.ThrowError(
 			c,
-			errr.StatusCode,
-			errr.Error(),
+			deleteBudgetError.StatusCode,
+			deleteBudgetError.Error(),
 		)
 
 		return
