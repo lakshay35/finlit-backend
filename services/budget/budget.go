@@ -36,6 +36,130 @@ func ParseBudget(c *gin.Context, res *models.Budget) error {
 	return nil
 }
 
+// GetBudgetTransactionSources ...
+// Retrieves a list of all budget transaction sources
+func GetBudgetTransactionSources(budgetID uuid.UUID) ([]models.BudgetTransactionSourcePayload, *errors.Error) {
+	connection := database.GetConnection()
+
+	query := "SELECT ea.external_account_id, ea.account_name, bts.budget_id, bts.budget_transaction_source_id FROM external_accounts ea JOIN budget_transaction_sources bts ON bts.external_account_id = ea.external_account_id WHERE bts.budget_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	rows, dbError := stmt.Query(budgetID)
+
+	if dbError != nil {
+		return nil, &errors.Error{
+			StatusCode: 400,
+			Message:    dbError.Error(),
+		}
+	}
+
+	accounts := make([]models.BudgetTransactionSourcePayload, 0)
+
+	for rows.Next() {
+		var temp models.BudgetTransactionSourcePayload
+		scanErr := rows.Scan(&temp.ExternalAccountID, &temp.AccountName, &temp.BudgetID, &temp.BudgetTransactionSourceID)
+
+		if scanErr != nil {
+			panic(scanErr)
+		}
+
+		accounts = append(accounts, temp)
+	}
+
+	return accounts, nil
+}
+
+// CreateBudgetTransactionSource ...
+// Creates a budget transaction source
+func CreateBudgetTransactionSource(budgetTransactionSource models.BudgetTransactionSourceCreationPayload) (*models.BudgetTransactionSource, *errors.Error) {
+	connection := database.GetConnection()
+	defer database.CloseConnection(connection)
+
+	// TODO: Refactor into stored procedure call
+
+	query := "INSERT INTO budget_transaction_sources (external_account_id, budget_id) VALUES ($1, $2) RETURNING budget_transaction_source_id"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	var res models.BudgetTransactionSource
+
+	res.BudgetID = budgetTransactionSource.BudgetID
+	res.ExternalAccountID = budgetTransactionSource.ExternalAccountID
+
+	dbError := stmt.QueryRow(budgetTransactionSource.ExternalAccountID, budgetTransactionSource.BudgetID).Scan(&res.BudgetTransactionSourceID)
+
+	if dbError != nil {
+		return nil, &errors.Error{
+			StatusCode: 400,
+			Message:    dbError.Error(),
+		}
+	}
+
+	return &res, nil
+}
+
+// DeleteBudgetTransactionSource ...
+// Delete budget transation source
+func DeleteBudgetTransactionSource(budgetTransactionSourceID uuid.UUID, userID uuid.UUID) *errors.Error {
+
+	budgetTransactionSource, getBudgetTransactionSourceError := GetBudgetTransactionSource(budgetTransactionSourceID)
+
+	if getBudgetTransactionSourceError != nil {
+		return getBudgetTransactionSourceError
+	}
+
+	if roleService.IsUserAdmin(budgetTransactionSource.BudgetID, userID) || roleService.IsUserOwner(budgetTransactionSource.BudgetID, userID) {
+
+		connection := database.GetConnection()
+
+		defer database.CloseConnection(connection)
+
+		query := "DELETE FROM budget_transaction_sources WHERE budget_transaction_source_id = $1"
+
+		stmt := database.PrepareStatement(connection, query)
+
+		_, dbError := stmt.Exec(budgetTransactionSourceID)
+
+		if dbError != nil {
+			return &errors.Error{
+				StatusCode: 400,
+				Message:    dbError.Error(),
+			}
+		}
+
+		return nil
+	}
+
+	return &errors.Error{
+		StatusCode: http.StatusForbidden,
+		Message:    "You are not authorized to delete this transaction source",
+	}
+}
+
+// GetBudgetTransactionSource ...
+// Gets budget transaction source by id
+func GetBudgetTransactionSource(budgetTransactionSourceID uuid.UUID) (*models.BudgetTransactionSource, *errors.Error) {
+	connection := database.GetConnection()
+
+	query := "SELECT * FROM budget_transaction_sources WHERE budget_transaction_source_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	var res models.BudgetTransactionSource
+	err := stmt.QueryRow(budgetTransactionSourceID).Scan(&res.BudgetTransactionSourceID, &res.ExternalAccountID, &res.BudgetID)
+
+	if err != nil {
+		fmt.Println("no budget exists for id", budgetTransactionSourceID)
+		return nil, &errors.Error{
+			Message:    "No budget transaction source exists with provided id",
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	return &res, nil
+}
+
 // DoesBudgetExist ...
 // Checks if a budget exists
 func DoesBudgetExist(UserID uuid.UUID, budgetName string) bool {

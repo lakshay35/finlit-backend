@@ -34,6 +34,33 @@ definitions:
       owner_id:
         type: string
     type: object
+  models.BudgetTransactionSource:
+    properties:
+      budget_id:
+        type: string
+      budget_transaction_source_id:
+        type: string
+      external_account_id:
+        type: string
+    type: object
+  models.BudgetTransactionSourceCreationPayload:
+    properties:
+      budget_id:
+        type: string
+      external_account_id:
+        type: string
+    type: object
+  models.BudgetTransactionSourcePayload:
+    properties:
+      account_name:
+        type: string
+      budget_id:
+        type: string
+      budget_transaction_source_id:
+        type: string
+      external_account_id:
+        type: string
+    type: object
   models.CreateBudgetPayload:
     properties:
       budget_name:
@@ -426,6 +453,36 @@ paths:
       summary: Create a budget
       tags:
       - Budgets
+  /budget/create-transaction-source:
+    post:
+      consumes:
+      - application/json
+      description: Creates a budget transaction source
+      parameters:
+      - description: Budget Transaction Source
+        in: body
+        name: budgetTransactionSource
+        required: true
+        schema:
+          $ref: '#/definitions/models.BudgetTransactionSourceCreationPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.BudgetTransactionSource'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Creates a budget transaction source
+      tags:
+      - Budgets
   /budget/delete:
     delete:
       consumes:
@@ -459,6 +516,35 @@ paths:
       summary: Get Budgets
       tags:
       - Budgets
+  /budget/delete-transaction-source/{budget-transaction-source-id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a budget transaction source
+      parameters:
+      - description: Budget Transaction Source Id
+        in: path
+        name: budget-transaction-source-id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: ""
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Delete Budget Transaction Source
+      tags:
+      - Budgets
   /budget/get:
     get:
       consumes:
@@ -471,7 +557,9 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Budget'
+              items:
+                $ref: '#/definitions/models.Budget'
+              type: array
             type: array
         "403":
           description: Forbidden
@@ -480,6 +568,38 @@ paths:
       security:
       - Google AccessToken: []
       summary: Get Budgets
+      tags:
+      - Budgets
+  /budget/get-transaction-sources:
+    get:
+      consumes:
+      - application/json
+      description: Gets a list of all budget transaction sources current user is a
+        part of
+      parameters:
+      - description: Budget ID to pull transaction sources for
+        in: header
+        name: Budget-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/models.BudgetTransactionSourcePayload'
+              type: array
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Get Budget Transaction Sources
       tags:
       - Budgets
   /expense/add:

@@ -334,6 +334,54 @@ var doc = `{
                 }
             }
         },
+        "/budget/create-transaction-source": {
+            "post": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Creates a budget transaction source",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Budgets"
+                ],
+                "summary": "Creates a budget transaction source",
+                "parameters": [
+                    {
+                        "description": "Budget Transaction Source",
+                        "name": "budgetTransactionSource",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.BudgetTransactionSourceCreationPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.BudgetTransactionSource"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/budget/delete": {
             "delete": {
                 "security": [
@@ -386,6 +434,52 @@ var doc = `{
                 }
             }
         },
+        "/budget/delete-transaction-source/{budget-transaction-source-id}": {
+            "delete": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Deletes a budget transaction source",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Budgets"
+                ],
+                "summary": "Delete Budget Transaction Source",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Budget Transaction Source Id",
+                        "name": "budget-transaction-source-id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/budget/get": {
             "get": {
                 "security": [
@@ -410,7 +504,59 @@ var doc = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Budget"
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.Budget"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/budget/get-transaction-sources": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Gets a list of all budget transaction sources current user is a part of",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Budgets"
+                ],
+                "summary": "Get Budget Transaction Sources",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Budget ID to pull transaction sources for",
+                        "name": "Budget-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.BudgetTransactionSourcePayload"
+                                }
                             }
                         }
                     },
@@ -870,6 +1016,48 @@ var doc = `{
                     "type": "string"
                 },
                 "owner_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BudgetTransactionSource": {
+            "type": "object",
+            "properties": {
+                "budget_id": {
+                    "type": "string"
+                },
+                "budget_transaction_source_id": {
+                    "type": "string"
+                },
+                "external_account_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BudgetTransactionSourceCreationPayload": {
+            "type": "object",
+            "properties": {
+                "budget_id": {
+                    "type": "string"
+                },
+                "external_account_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BudgetTransactionSourcePayload": {
+            "type": "object",
+            "properties": {
+                "account_name": {
+                    "type": "string"
+                },
+                "budget_id": {
+                    "type": "string"
+                },
+                "budget_transaction_source_id": {
+                    "type": "string"
+                },
+                "external_account_id": {
                     "type": "string"
                 }
             }

@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS budgets (
 
 CREATE TABLE IF NOT EXISTS expense_charge_cycles (
   expense_charge_cycle_id SERIAL PRIMARY KEY,
-  unit VARCHAR (50) NOT NULL UNIQUE,
+  unit VARCHAR (50) NOT NULL UNIQUE
 );
 
 insert into expense_charge_cycles (unit) VALUES ('annually') on conflict do nothing;
@@ -90,10 +90,10 @@ CREATE TABLE IF NOT EXISTS budget_transaction_sources (
   external_account_id UUID,
   budget_id UUID,
   FOREIGN KEY (external_account_id)
-    REFERENCES external_acounts (external_account_id),
+    REFERENCES external_accounts (external_account_id),
   FOREIGN KEY (budget_id)
     REFERENCES budgets (budget_id)
-)
+);
 
 CREATE TABLE IF NOT EXISTS budget_transaction_categories (
   budget_transaction_category_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -101,12 +101,12 @@ CREATE TABLE IF NOT EXISTS budget_transaction_categories (
   category_name VARCHAR(255),
   FOREIGN KEY (budget_id)
     REFERENCES budgets (budget_id)
-)
+);
 
 CREATE TABLE IF NOT EXISTS budget_transaction_category_transactions (
   budget_transaction_cateogry_transaction_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   budget_transaction_category_id UUID,
-  transaction_id VARCHAR (255)
+  transaction_id VARCHAR (255),
   FOREIGN KEY (budget_transaction_category_id)
     REFERENCES budget_transaction_categories (budget_transaction_category_id)
-)
+);
