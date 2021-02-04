@@ -367,10 +367,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.BudgetTransactionSource"
-                            }
+                            "$ref": "#/definitions/models.BudgetTransactionSource"
                         }
                     },
                     "403": {
@@ -553,10 +550,7 @@ var doc = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/definitions/models.BudgetTransactionSourcePayload"
-                                }
+                                "$ref": "#/definitions/models.BudgetTransactionSourcePayload"
                             }
                         }
                     },

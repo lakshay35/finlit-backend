@@ -471,9 +471,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.BudgetTransactionSource'
-            type: array
+            $ref: '#/definitions/models.BudgetTransactionSource'
         "403":
           description: Forbidden
           schema:
@@ -589,9 +587,7 @@ paths:
           description: OK
           schema:
             items:
-              items:
-                $ref: '#/definitions/models.BudgetTransactionSourcePayload'
-              type: array
+              $ref: '#/definitions/models.BudgetTransactionSourcePayload'
             type: array
         "403":
           description: Forbidden

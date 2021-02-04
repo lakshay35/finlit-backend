@@ -93,7 +93,7 @@ func GetBudgets(c *gin.Context) {
 // @Produce  json
 // @Param Budget-ID header string true "Budget ID to pull transaction sources for"
 // @Security Google AccessToken
-// @Success 200 {array} []models.BudgetTransactionSourcePayload
+// @Success 200 {array} models.BudgetTransactionSourcePayload
 // @Failure 403 {object} models.Error
 // @Router /budget/get-transaction-sources [get]
 func GetBudgetTransactionSources(c *gin.Context) {
@@ -133,7 +133,7 @@ func GetBudgetTransactionSources(c *gin.Context) {
 // @Produce  json
 // @Param budgetTransactionSource body models.BudgetTransactionSourceCreationPayload true "Budget Transaction Source"
 // @Security Google AccessToken
-// @Success 200 {array} models.BudgetTransactionSource
+// @Success 200 {object} models.BudgetTransactionSource
 // @Failure 403 {object} models.Error
 // @Router /budget/create-transaction-source [post]
 func CreateBudgetTransactionSource(c *gin.Context) {
