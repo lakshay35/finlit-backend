@@ -153,7 +153,7 @@ func GetBudgetTransactionSource(budgetTransactionSourceID uuid.UUID) (*models.Bu
 		fmt.Println("no budget exists for id", budgetTransactionSourceID)
 		return nil, &errors.Error{
 			Message:    "No budget transaction source exists with provided id",
-			StatusCode: http.StatusBadRequest,
+			StatusCode: http.StatusNotFound,
 		}
 	}
 

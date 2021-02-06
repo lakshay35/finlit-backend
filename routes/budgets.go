@@ -135,6 +135,7 @@ func GetBudgetTransactionSources(c *gin.Context) {
 // @Security Google AccessToken
 // @Success 200 {object} models.BudgetTransactionSource
 // @Failure 403 {object} models.Error
+// @Failure 400 {object} models.Error
 // @Router /budget/create-transaction-source [post]
 func CreateBudgetTransactionSource(c *gin.Context) {
 	var json models.BudgetTransactionSourceCreationPayload
@@ -169,6 +170,7 @@ func CreateBudgetTransactionSource(c *gin.Context) {
 // @Security Google AccessToken
 // @Success 204
 // @Failure 404 {object} models.Error
+// @Failure 400 {object} models.Error
 // @Failure 403 {object} models.Error
 // @Router /budget/delete-transaction-source/{budget-transaction-source-id} [delete]
 func DeleteBudgetTransactionSource(c *gin.Context) {

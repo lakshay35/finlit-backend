@@ -370,6 +370,12 @@ var doc = `{
                             "$ref": "#/definitions/models.BudgetTransactionSource"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
@@ -461,6 +467,12 @@ var doc = `{
                 "responses": {
                     "204": {
                         "description": ""
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
                     },
                     "403": {
                         "description": "Forbidden",
