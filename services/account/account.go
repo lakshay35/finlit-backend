@@ -26,9 +26,39 @@ func GetAccountsForAccessToken(accessToken string) []plaid.Account {
 	return accounts.Accounts
 }
 
+// DeleteExternalAccount ...
+// Deletes external account with provided id
+func DeleteExternalAccount(accountID uuid.UUID) *errors.Error {
+
+	_, getAccountErr := GetAccountInformation(accountID)
+
+	if getAccountErr != nil {
+		return getAccountErr
+	}
+
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := "DELETE FROM external_accounts where external_account_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	_, deleteErr := stmt.Exec(accountID)
+
+	if deleteErr != nil {
+		return &errors.Error{
+			Message:    deleteErr.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	return nil
+}
+
 // GetExternalAccount ...
 // Gets external account from DB
-func GetExternalAccount(accountID uuid.UUID) models.Account {
+func GetExternalAccount(accountID uuid.UUID) (*models.Account, *errors.Error) {
 	connection := database.GetConnection()
 
 	defer database.CloseConnection(connection)
@@ -52,10 +82,13 @@ func GetExternalAccount(accountID uuid.UUID) models.Account {
 	)
 
 	if err != nil {
-		panic(err)
+		return nil, &errors.Error{
+			Message:    err.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
 	}
 
-	return externalAccount
+	return &externalAccount, nil
 }
 
 // LinkTokenCreate creates a link token using the specified parameters
@@ -218,7 +251,14 @@ func GetTransactions(
 	endDate string,
 ) ([]plaid.Transaction, *errors.Error) {
 
-	externalAccount := GetExternalAccount(externalAccountID)
+	externalAccount, GetExternalAccountErr := GetExternalAccount(externalAccountID)
+
+	if GetExternalAccountErr != nil {
+		return nil, &errors.Error{
+			Message:    "External Acount not found",
+			StatusCode: http.StatusBadRequest,
+		}
+	}
 
 	response, err := plaidService.PlaidClient().GetTransactions(externalAccount.AccessToken, startDate, endDate)
 
@@ -245,7 +285,14 @@ func GetTransactions(
 func GetAccountInformation(
 	externalAccountID uuid.UUID,
 ) (*plaid.Account, *errors.Error) {
-	externalAccount := GetExternalAccount(externalAccountID)
+	externalAccount, GetExternalAccountErr := GetExternalAccount(externalAccountID)
+
+	if GetExternalAccountErr != nil {
+		return nil, &errors.Error{
+			StatusCode: http.StatusBadRequest,
+			Message:    "External Account not found",
+		}
+	}
 
 	response, err := plaidService.PlaidClient().GetAccounts(externalAccount.AccessToken)
 

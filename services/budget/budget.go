@@ -309,6 +309,29 @@ func GetAllBudgets(userID uuid.UUID) ([]models.Budget, *errors.Error) {
 	return result, nil
 }
 
+// DeleteAllBudgetTransactionSources ...
+// Deletes all budget transaction sources
+func DeleteAllBudgetTransactionSources(budgetID uuid.UUID) *errors.Error {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := "DELETE FROM budget_transaction_sources WHERE budget_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	_, stmtErr := stmt.Exec(budgetID)
+
+	if stmtErr != nil {
+		return &errors.Error{
+			Message:    "Buget Transaction Sources not found",
+			StatusCode: http.StatusNotFound,
+		}
+	}
+
+	return nil
+}
+
 // DeleteBudget ...
 // Deletes budget an all associated expenses
 func DeleteBudget(budgetID uuid.UUID, userID uuid.UUID) *errors.Error {
@@ -317,6 +340,12 @@ func DeleteBudget(budgetID uuid.UUID, userID uuid.UUID) *errors.Error {
 			Message:    "User requesting deletion needs to be the owner of budget to proceed",
 			StatusCode: http.StatusUnauthorized,
 		}
+	}
+
+	deleteBTSErr := DeleteAllBudgetTransactionSources(budgetID)
+
+	if deleteBTSErr != nil {
+		return deleteBTSErr
 	}
 
 	err := expenseService.DeleteAllBudgetExpenses(budgetID, userID)

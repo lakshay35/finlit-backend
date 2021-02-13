@@ -209,7 +209,7 @@ func DeleteBudgetTransactionSource(c *gin.Context) {
 }
 
 // DeleteBudget ...
-// @Summary Get Budgets
+// @Summary Delete budget
 // @Description Gets a list of all budgets current user is a part of
 // @Tags Budgets
 // @Accept  json

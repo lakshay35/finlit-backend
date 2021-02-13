@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"time"
 
+	uuid "github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 
 	"github.com/gin-gonic/gin"
 	accountsService "github.com/lakshay35/finlit-backend/services/account"
 	plaidService "github.com/lakshay35/finlit-backend/services/plaid"
+	"github.com/lakshay35/finlit-backend/utils/logging"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
 
@@ -70,6 +72,92 @@ func GetCurrentBalances(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.Accounts)
+}
+
+// DeleteAccount ...
+// @Summary Delete Account
+// @Description Deletes an external account registration
+// @Tags External Accounts
+// @Accept  json
+// @Produce  json
+// @Param external-account-id path string true "External Account Id"
+// @Security Google AccessToken
+// @Success 200 {array} models.Budget
+// @Failure 403 {object} models.Error
+// @Failure 400 {object} models.Error
+// @Router /account/delete/{external-account-id} [delete]
+func DeleteAccount(c *gin.Context) {
+
+	param := c.Param("external-account-id")
+
+	logging.InfoLogger.Print("Received request to delete external account with id ", param)
+	externalAccountID, err := uuid.Parse(param)
+
+	if err != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			err.Error(),
+		)
+
+		return
+	}
+
+	deleteErr := accountsService.DeleteExternalAccount(externalAccountID)
+
+	if deleteErr != nil {
+		requests.ThrowError(
+			c,
+			deleteErr.StatusCode,
+			deleteErr.Message,
+		)
+
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// GetAccountByID ...
+// @Summary Get Account by id
+// @Description Deletes a budget transaction source
+// @Tags External Accounts
+// @Accept  json
+// @Produce  json
+// @Param external-account-id path string true "External Account Id"
+// @Security Google AccessToken
+// @Success 200 {object} models.Account
+// @Failure 404 {object} models.Error
+// @Failure 400 {object} models.Error
+// @Failure 403 {object} models.Error
+// @Router /account/get-account/{external-account-id} [get]
+func GetAccountByID(c *gin.Context) {
+	param := c.Param("external-account-id path")
+	externalAccountID, parseErr := uuid.Parse(param)
+
+	if parseErr != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			"Budget Transaction Source ID must be a UUID",
+		)
+
+		return
+	}
+
+	account, getErr := accountsService.GetExternalAccount(externalAccountID)
+
+	if getErr != nil {
+		requests.ThrowError(
+			c,
+			getErr.StatusCode,
+			getErr.Message,
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, account)
 }
 
 // GetTransactions ...

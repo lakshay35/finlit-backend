@@ -282,6 +282,39 @@ paths:
       summary: Create Link Token
       tags:
       - External Accounts
+  /account/delete/{external-account-id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an external account registration
+      parameters:
+      - description: External Account Id
+        in: path
+        name: external-account-id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Budget'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Delete Account
+      tags:
+      - External Accounts
   /account/get:
     get:
       consumes:
@@ -335,6 +368,41 @@ paths:
       security:
       - Google AccessToken: []
       summary: Get Account Information
+      tags:
+      - External Accounts
+  /account/get-account/{external-account-id}:
+    get:
+      consumes:
+      - application/json
+      description: Deletes a budget transaction source
+      parameters:
+      - description: External Account Id
+        in: path
+        name: external-account-id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Get Account by id
       tags:
       - External Accounts
   /account/live-balances:
@@ -515,7 +583,7 @@ paths:
             $ref: '#/definitions/models.Error'
       security:
       - Google AccessToken: []
-      summary: Get Budgets
+      summary: Delete budget
       tags:
       - Budgets
   /budget/delete-transaction-source/{budget-transaction-source-id}:

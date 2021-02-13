@@ -62,6 +62,58 @@ var doc = `{
                 }
             }
         },
+        "/account/delete/{external-account-id}": {
+            "delete": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Deletes an external account registration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "External Accounts"
+                ],
+                "summary": "Delete Account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "External Account Id",
+                        "name": "external-account-id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Budget"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/account/get": {
             "get": {
                 "security": [
@@ -143,6 +195,61 @@ var doc = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/account/get-account/{external-account-id}": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Deletes a budget transaction source",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "External Accounts"
+                ],
+                "summary": "Get Account by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "External Account Id",
+                        "name": "external-account-id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Account"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/models.Error"
                         }
@@ -402,7 +509,7 @@ var doc = `{
                 "tags": [
                     "Budgets"
                 ],
-                "summary": "Get Budgets",
+                "summary": "Delete budget",
                 "parameters": [
                     {
                         "type": "string",
