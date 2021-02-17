@@ -73,6 +73,10 @@ func main() {
 			budget.GET("/get-transaction-sources", routes.GetBudgetTransactionSources)
 			budget.POST("/create-transaction-source", routes.CreateBudgetTransactionSource)
 			budget.DELETE("/delete-transaction-source/:budget-transaction-source-id", routes.DeleteBudgetTransactionSource)
+			budget.GET("/get-expense-summary", routes.GetBudgetExpenseSummary)
+			budget.GET("/transaction-categories", routes.GetTransactionCategories)
+			budget.DELETE("/transaction-categories/delete/:budget-transaction-category-id", routes.DeleteBudgetTransactionCategory)
+			budget.POST("/transaction-categories/create", routes.CreateBudgetTransactionCategory)
 		}
 		user := api.Group("/user")
 		{

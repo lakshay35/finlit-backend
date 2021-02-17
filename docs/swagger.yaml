@@ -1,4 +1,11 @@
 definitions:
+  errors.Error:
+    properties:
+      message:
+        type: string
+      status_code:
+        type: integer
+    type: object
   models.Account:
     properties:
       access_token:
@@ -32,6 +39,22 @@ definitions:
       budget_name:
         type: string
       owner_id:
+        type: string
+    type: object
+  models.BudgetTransactionCategory:
+    properties:
+      budget_id:
+        type: string
+      budget_transaction_category_id:
+        type: string
+      category_name:
+        type: string
+    type: object
+  models.BudgetTransactionCategoryCreationPayload:
+    properties:
+      budget_id:
+        type: string
+      category_name:
         type: string
     type: object
   models.BudgetTransactionSource:
@@ -631,9 +654,7 @@ paths:
           description: OK
           schema:
             items:
-              items:
-                $ref: '#/definitions/models.Budget'
-              type: array
+              $ref: '#/definitions/models.Budget'
             type: array
         "403":
           description: Forbidden
@@ -642,6 +663,33 @@ paths:
       security:
       - Google AccessToken: []
       summary: Get Budgets
+      tags:
+      - Budgets
+  /budget/get-expense-summary:
+    get:
+      consumes:
+      - application/json
+      description: Gets data about user spending vs budget
+      parameters:
+      - description: Budget ID to get expense summary for
+        in: header
+        name: Budget-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.Error'
+      security:
+      - Google AccessToken: []
+      summary: Get Budget Expense summary
       tags:
       - Budgets
   /budget/get-transaction-sources:
@@ -672,6 +720,96 @@ paths:
       security:
       - Google AccessToken: []
       summary: Get Budget Transaction Sources
+      tags:
+      - Budgets
+  /budget/transaction-categories:
+    get:
+      consumes:
+      - application/json
+      description: Gets all transaction categories from plaid
+      parameters:
+      - description: Budget ID to get categories for
+        in: header
+        name: Budget-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.BudgetTransactionCategory'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Get Transaction Categories
+      tags:
+      - Budgets
+  /budget/transaction-categories/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a budget transaction source
+      parameters:
+      - description: Budget Transaction Category
+        in: body
+        name: budgetTransactionSource
+        required: true
+        schema:
+          $ref: '#/definitions/models.BudgetTransactionCategoryCreationPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BudgetTransactionCategory'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Creates a budget transaction source
+      tags:
+      - Budgets
+  /budget/transaction-categories/delete/{budget-transaction-category-id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a budget transaction category
+      parameters:
+      - description: Budget Transaction Category Id
+        in: path
+        name: budget-transaction-category-id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Delete budget transaction category
       tags:
       - Budgets
   /expense/add:

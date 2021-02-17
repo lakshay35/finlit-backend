@@ -620,10 +620,7 @@ var doc = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/definitions/models.Budget"
-                                }
+                                "$ref": "#/definitions/models.Budget"
                             }
                         }
                     },
@@ -631,6 +628,49 @@ var doc = `{
                         "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/budget/get-expense-summary": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Gets data about user spending vs budget",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Budgets"
+                ],
+                "summary": "Get Budget Expense summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Budget ID to get expense summary for",
+                        "name": "Budget-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/errors.Error"
                         }
                     }
                 }
@@ -671,6 +711,149 @@ var doc = `{
                             "items": {
                                 "$ref": "#/definitions/models.BudgetTransactionSourcePayload"
                             }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/budget/transaction-categories": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Gets all transaction categories from plaid",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Budgets"
+                ],
+                "summary": "Get Transaction Categories",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Budget ID to get categories for",
+                        "name": "Budget-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.BudgetTransactionCategory"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/budget/transaction-categories/create": {
+            "post": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Creates a budget transaction source",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Budgets"
+                ],
+                "summary": "Creates a budget transaction source",
+                "parameters": [
+                    {
+                        "description": "Budget Transaction Category",
+                        "name": "budgetTransactionSource",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.BudgetTransactionCategoryCreationPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.BudgetTransactionCategory"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/budget/transaction-categories/delete/{budget-transaction-category-id}": {
+            "delete": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Deletes a budget transaction category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Budgets"
+                ],
+                "summary": "Delete budget transaction category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Budget Transaction Category Id",
+                        "name": "budget-transaction-category-id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
                         }
                     },
                     "403": {
@@ -1079,6 +1262,17 @@ var doc = `{
         }
     },
     "definitions": {
+        "errors.Error": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status_code": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Account": {
             "type": "object",
             "properties": {
@@ -1129,6 +1323,31 @@ var doc = `{
                     "type": "string"
                 },
                 "owner_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BudgetTransactionCategory": {
+            "type": "object",
+            "properties": {
+                "budget_id": {
+                    "type": "string"
+                },
+                "budget_transaction_category_id": {
+                    "type": "string"
+                },
+                "category_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BudgetTransactionCategoryCreationPayload": {
+            "type": "object",
+            "properties": {
+                "budget_id": {
+                    "type": "string"
+                },
+                "category_name": {
                     "type": "string"
                 }
             }

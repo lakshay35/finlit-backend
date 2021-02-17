@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	"github.com/lakshay35/finlit-backend/models/errors"
+	"github.com/lakshay35/finlit-backend/services/account"
 	expenseService "github.com/lakshay35/finlit-backend/services/expense"
 	roleService "github.com/lakshay35/finlit-backend/services/role"
 	"github.com/lakshay35/finlit-backend/utils/database"
 	"github.com/lakshay35/finlit-backend/utils/requests"
+	"github.com/plaid/plaid-go/plaid"
 )
 
 // ParseBudget ...
@@ -375,4 +378,140 @@ func DeleteBudget(budgetID uuid.UUID, userID uuid.UUID) *errors.Error {
 	}
 
 	return nil
+}
+
+// GetBudgetExpenseSummary ...
+// Calculates the budget expense summary for the past 30 day period
+func GetBudgetExpenseSummary(budgetID uuid.UUID, userID uuid.UUID) (string, *errors.Error) {
+	if !roleService.IsUserAdmin(budgetID, userID) && !roleService.IsUserOwner(budgetID, userID) {
+		return "", &errors.Error{
+			Message:    "You are not entitled to this budget",
+			StatusCode: http.StatusForbidden,
+		}
+	}
+
+	budgetTransactionSources, getBudgetTransactionSourcesError := GetBudgetTransactionSources(budgetID)
+
+	if getBudgetTransactionSourcesError != nil {
+		return "", getBudgetTransactionSourcesError
+	}
+
+	expenses, expensesErr := expenseService.GetAllExpensesForBudget(budgetID, userID)
+
+	if expensesErr != nil {
+		return "", expensesErr
+	}
+
+	var txs = make([]plaid.Transaction, 0)
+
+	for _, bts := range budgetTransactionSources {
+		transactions, getTransactionsErr := account.GetTransactions(bts.ExternalAccountID, time.Now().Local().Add(-30*24*time.Hour).Format("2006-01-02"),
+			time.Now().Local().Format("2006-01-02"))
+
+		if getTransactionsErr != nil {
+			return "", getTransactionsErr
+		}
+
+		txs = append(txs, transactions...)
+	}
+
+	calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(expenses, txs)
+	// plaidSerivce.PlaidClient().
+
+	return "hello", nil
+}
+
+func calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(expenses []models.Expense, transactions []plaid.Transaction) {
+	for _, tx := range transactions {
+		fmt.Printf("%s: %f (%s)\n", tx.Name, tx.Amount, tx.Category[0])
+	}
+	fmt.Println("")
+	for _, exp := range expenses {
+		fmt.Printf("%s: %f\n", exp.ExpenseName, exp.ExpenseValue)
+	}
+}
+
+// GetTransactionCategories ...
+// Get transaction categories for a given budget
+func GetTransactionCategories(budgetID uuid.UUID) ([]models.BudgetTransactionCategory, *errors.Error) {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := "SELECT * FROM budget_transaction_categories WHERE budget_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	res, queryErr := stmt.Query(budgetID)
+
+	if queryErr != nil {
+		return nil, &errors.Error{
+			Message:    queryErr.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	categories := make([]models.BudgetTransactionCategory, 0)
+
+	for res.Next() {
+		var temp models.BudgetTransactionCategory
+
+		scanErr := res.Scan(&temp.BudgetTransactionCategoryID, &temp.BudgetID, &temp.CategoryName)
+
+		if scanErr != nil {
+			panic(scanErr)
+		}
+
+		categories = append(categories, temp)
+	}
+
+	return categories, nil
+}
+
+// DeleteTransactionCategory ...
+// Deletes transaction category
+func DeleteTransactionCategory(categoryID uuid.UUID) *errors.Error {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := "DELETE FROM budget_transaction_categories where budget_transaction_category_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	_, err := stmt.Exec(categoryID)
+
+	if err != nil {
+		return &errors.Error{
+			Message:    err.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	return nil
+}
+
+// CreateTransactionCategory ...
+// Creates a transaction category for the given budget
+func CreateTransactionCategory(category models.BudgetTransactionCategoryCreationPayload) (*models.BudgetTransactionCategory, *errors.Error) {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := "INSERT INTO budget_transaction_categories (budget_id, category_name) VALUES ($1, $2) RETURNING budget_transaction_category_id, budget_id, category_name"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	var temp models.BudgetTransactionCategory
+
+	scanErr := stmt.QueryRow(category.BudgetID, category.CategoryName).Scan(&temp.BudgetTransactionCategoryID, &temp.BudgetID, &temp.CategoryName)
+
+	if scanErr != nil {
+		return nil, &errors.Error{
+			Message:    scanErr.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	return &temp, nil
 }

@@ -59,7 +59,7 @@ func CreateBudget(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Security Google AccessToken
-// @Success 200 {array} []models.Budget
+// @Success 200 {array} models.Budget
 // @Failure 403 {object} models.Error
 // @Router /budget/get [get]
 func GetBudgets(c *gin.Context) {
@@ -253,4 +253,164 @@ func DeleteBudget(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// GetBudgetExpenseSummary ...
+// @Summary Get Budget Expense summary
+// @Description Gets data about user spending vs budget
+// @Tags Budgets
+// @Accept  json
+// @Produce  json
+// @Param Budget-ID header string true "Budget ID to get expense summary for"
+// @Security Google AccessToken
+// @Success 200 {object} string
+// @Failure 403 {object} errors.Error
+// @Router /budget/get-expense-summary [get]
+func GetBudgetExpenseSummary(c *gin.Context) {
+	budgetID, budgetIDError := uuid.Parse(c.GetHeader("Budget-ID"))
+
+	if budgetIDError != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			"Header 'Budget-ID' must contain a valid uuid",
+		)
+
+		return
+	}
+
+	user, getUserErr := requests.GetUserFromContext(c)
+
+	if getUserErr != nil {
+		panic(getUserErr)
+	}
+
+	summary, summaryErr := budgetService.GetBudgetExpenseSummary(budgetID, user.UserID)
+
+	if summaryErr != nil {
+		requests.ThrowError(
+			c,
+			summaryErr.StatusCode,
+			summaryErr.Message,
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
+
+// GetTransactionCategories ...
+// @Summary Get Transaction Categories
+// @Description Gets all transaction categories from plaid
+// @Tags Budgets
+// @Accept  json
+// @Produce  json
+// @Param Budget-ID header string true "Budget ID to get categories for"
+// @Security Google AccessToken
+// @Success 200 {array} models.BudgetTransactionCategory
+// @Failure 403 {object} models.Error
+// @Router /budget/transaction-categories [get]
+func GetTransactionCategories(c *gin.Context) {
+	budgetID, budgetIDError := uuid.Parse(c.GetHeader("Budget-ID"))
+
+	if budgetIDError != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			"Header 'Budget-ID' must contain a valid uuid",
+		)
+
+		return
+	}
+
+	categories, err := budgetService.GetTransactionCategories(budgetID)
+
+	if err != nil {
+		requests.ThrowError(
+			c,
+			err.StatusCode,
+			err.Message,
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, categories)
+}
+
+// DeleteBudgetTransactionCategory ...
+// @Summary Delete budget transaction category
+// @Description Deletes a budget transaction category
+// @Tags Budgets
+// @Accept  json
+// @Produce  json
+// @Security Google AccessToken
+// @Param budget-transaction-category-id path string true "Budget Transaction Category Id"
+// @Success 200
+// @Failure 403 {object} models.Error
+// @Failure 400 {object} models.Error
+// @Router /budget/transaction-categories/delete/{budget-transaction-category-id} [delete]
+func DeleteBudgetTransactionCategory(c *gin.Context) {
+	param := c.Param("budget-transaction-category-id")
+	budgetTransactionCategoryID, parseErr := uuid.Parse(param)
+
+	if parseErr != nil {
+		requests.ThrowError(
+			c,
+			http.StatusBadRequest,
+			"Budget Transaction Category ID must be a UUID",
+		)
+
+		return
+	}
+
+	error := budgetService.DeleteTransactionCategory(budgetTransactionCategoryID)
+
+	if error != nil {
+		requests.ThrowError(
+			c,
+			error.StatusCode,
+			error.Message,
+		)
+
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// CreateBudgetTransactionCategory ...
+// @Summary Creates a budget transaction source
+// @Description Creates a budget transaction source
+// @Tags Budgets
+// @Accept  json
+// @Produce  json
+// @Param budgetTransactionSource body models.BudgetTransactionCategoryCreationPayload true "Budget Transaction Category"
+// @Security Google AccessToken
+// @Success 200 {object} models.BudgetTransactionCategory
+// @Failure 403 {object} models.Error
+// @Failure 400 {object} models.Error
+// @Router /budget/transaction-categories/create [post]
+func CreateBudgetTransactionCategory(c *gin.Context) {
+	var json models.BudgetTransactionCategoryCreationPayload
+	err := requests.ParseBody(c, &json)
+
+	if err != nil {
+		return
+	}
+
+	category, creationErr := budgetService.CreateTransactionCategory(json)
+
+	if creationErr != nil {
+		requests.ThrowError(
+			c,
+			creationErr.StatusCode,
+			creationErr.Message,
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, category)
 }
