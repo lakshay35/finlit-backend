@@ -67,10 +67,13 @@ CREATE TABLE IF NOT EXISTS	 expenses (
   expense_value NUMERIC NOT NULL,
   expense_description VARCHAR,
   expense_charge_cycle_id INT NOT NULL,
+  budget_transaction_category_id UUID NOT NULL,
   FOREIGN KEY (budget_id)
       REFERENCES budgets (budget_id),
   FOREIGN KEY (expense_charge_cycle_id)
       REFERENCES expense_charge_cycles (expense_charge_cycle_id)
+  FOREIGN KEY (budget_transaction_category_id)
+      REFERENCE budget_transaction_categories (budget_transaction_category_id)
 );
 
 CREATE TABLE IF NOT EXISTS user_roles (
@@ -106,9 +109,9 @@ CREATE TABLE IF NOT EXISTS budget_transaction_categories (
 );
 
 CREATE TABLE IF NOT EXISTS budget_transaction_category_transactions (
-  budget_transaction_cateogry_transaction_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  budget_transaction_category_transaction_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   budget_transaction_category_id UUID,
-  transaction_id VARCHAR (255),
+  transaction_name VARCHAR (255),
   FOREIGN KEY (budget_transaction_category_id)
     REFERENCES budget_transaction_categories (budget_transaction_category_id)
 );

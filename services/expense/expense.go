@@ -215,7 +215,7 @@ func UpdateExpense(expense *models.Expense, userID uuid.UUID) *errors.Error {
 	connection := database.GetConnection()
 	defer database.CloseConnection(connection)
 
-	query := `UPDATE expenses SET budget_id = $1, expense_name = $2, expense_value = $3, expense_description = $4, expense_charge_cycle_id = (SELECT expense_charge_cycle_id FROM expense_charge_cycles where unit = $5) WHERE expense_id = $6`
+	query := `UPDATE expenses SET budget_id = $1, expense_name = $2, expense_value = $3, expense_description = $4, expense_charge_cycle_id = (SELECT expense_charge_cycle_id FROM expense_charge_cycles where unit = $5), budget_transaction_category_id = $6 WHERE expense_id = $7`
 
 	stmt := database.PrepareStatement(connection, query)
 
@@ -225,6 +225,7 @@ func UpdateExpense(expense *models.Expense, userID uuid.UUID) *errors.Error {
 		decimal.NewFromFloat32(expense.ExpenseValue).DivRound(decimal.NewFromInt(1), 2),
 		expense.ExpenseDescription,
 		expense.ExpenseChargeCycle.Unit,
+		expense.BudgetTransactionCategoryID,
 		expense.ExpenseID,
 	)
 
@@ -252,8 +253,8 @@ func GetAllExpensesForBudget(budgetID uuid.UUID, userID uuid.UUID) ([]models.Exp
 	connection := database.GetConnection()
 	defer database.CloseConnection(connection)
 
-	query := `SELECT expense_id, budget_id, expense_name, expense_value, expense_description, unit, ecc.expense_charge_cycle_id
-	FROM expenses ep JOIN expense_charge_cycles ecc ON ecc.expense_charge_cycle_id = ep.expense_charge_cycle_id
+	query := `SELECT expense_id, budget_id, expense_name, expense_value, expense_description, unit, ecc.expense_charge_cycle_id,
+	budget_transaction_category_id FROM expenses ep JOIN expense_charge_cycles ecc ON ecc.expense_charge_cycle_id = ep.expense_charge_cycle_id
 	WHERE ep.budget_id = $1`
 
 	stmt := database.PrepareStatement(connection, query)
@@ -277,6 +278,7 @@ func GetAllExpensesForBudget(budgetID uuid.UUID, userID uuid.UUID) ([]models.Exp
 			&expense.ExpenseDescription,
 			&expense.ExpenseChargeCycle.Unit,
 			&expense.ExpenseChargeCycle.ExpenseChargeCycleID,
+			&expense.BudgetTransactionCategoryID,
 		)
 
 		if err != nil {
@@ -314,17 +316,18 @@ func AddExpenseToBudget(expense *models.AddExpensePayload, userID uuid.UUID) (*m
 
 	defer database.CloseConnection(connection)
 
-	query := `INSERT INTO expenses (budget_id, expense_name, expense_value, expense_description, expense_charge_cycle_id
-	) VALUES ($1, $2, $3, $4, $5) RETURNING expense_id`
+	query := `INSERT INTO expenses (budget_id, expense_name, expense_value, expense_description, expense_charge_cycle_id, budget_transaction_category_id
+	) VALUES ($1, $2, $3, $4, $5, $6) RETURNING expense_id`
 
 	stmt := database.PrepareStatement(connection, query)
 
 	var expenseResult = models.Expense{
-		BudgetID:           expense.BudgetID,
-		ExpenseName:        expense.ExpenseName,
-		ExpenseValue:       expense.ExpenseValue,
-		ExpenseDescription: expense.ExpenseDescription,
-		ExpenseChargeCycle: expense.ExpenseChargeCycle,
+		BudgetID:                    expense.BudgetID,
+		ExpenseName:                 expense.ExpenseName,
+		ExpenseValue:                expense.ExpenseValue,
+		ExpenseDescription:          expense.ExpenseDescription,
+		ExpenseChargeCycle:          expense.ExpenseChargeCycle,
+		BudgetTransactionCategoryID: expense.BudgetTransactionCategoryID,
 	}
 
 	dbError := stmt.QueryRow(
@@ -333,6 +336,7 @@ func AddExpenseToBudget(expense *models.AddExpensePayload, userID uuid.UUID) (*m
 		expense.ExpenseValue,
 		expense.ExpenseDescription,
 		expenseChargeCycleID,
+		expense.BudgetTransactionCategoryID,
 	).Scan(&expenseResult.ExpenseID)
 
 	if dbError != nil {

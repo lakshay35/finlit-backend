@@ -641,12 +641,6 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
@@ -1279,6 +1273,9 @@
                 "budget_id": {
                     "type": "string"
                 },
+                "budget_transaction_category_id": {
+                    "type": "string"
+                },
                 "expense_charge_cycle": {
                     "$ref": "#/definitions/models.ExpenseChargeCycle"
                 },
@@ -1397,6 +1394,9 @@
             "type": "object",
             "properties": {
                 "budget_id": {
+                    "type": "string"
+                },
+                "budget_transaction_category_id": {
                     "type": "string"
                 },
                 "expense_charge_cycle": {

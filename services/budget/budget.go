@@ -380,11 +380,48 @@ func DeleteBudget(budgetID uuid.UUID, userID uuid.UUID) *errors.Error {
 	return nil
 }
 
+// GetBudgetTransactionCategoryTransactions ...
+// Gets budget transaction category transactions that the user has tagged
+func GetBudgetTransactionCategoryTransactions(budgetID uuid.UUID) ([]models.BudgetTransactionCategoryTransaction, *errors.Error) {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := "SELECT btct.transaction_name, btc.category_name FROM budget_transaction_category_transactions btct JOIN budget_transaction_categories btc on btc.budget_transaction_category_id = btct.budget_transaction_category_id WHERE btc.budget_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	res, queryErr := stmt.Query(budgetID)
+
+	if queryErr != nil {
+		return nil, &errors.Error{
+			Message:    queryErr.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	var transactions []models.BudgetTransactionCategoryTransaction
+
+	for res.Next() {
+		var temp models.BudgetTransactionCategoryTransaction
+
+		scanErr := res.Scan(&temp.TransactionName, &temp.CategoryName)
+
+		if scanErr != nil {
+			panic(scanErr)
+		}
+
+		transactions = append(transactions, temp)
+	}
+
+	return transactions, nil
+}
+
 // GetBudgetExpenseSummary ...
 // Calculates the budget expense summary for the past 30 day period
-func GetBudgetExpenseSummary(budgetID uuid.UUID, userID uuid.UUID) (string, *errors.Error) {
+func GetBudgetExpenseSummary(budgetID uuid.UUID, userID uuid.UUID) (*models.ExpenseSummary, *errors.Error) {
 	if !roleService.IsUserAdmin(budgetID, userID) && !roleService.IsUserOwner(budgetID, userID) {
-		return "", &errors.Error{
+		return nil, &errors.Error{
 			Message:    "You are not entitled to this budget",
 			StatusCode: http.StatusForbidden,
 		}
@@ -393,13 +430,13 @@ func GetBudgetExpenseSummary(budgetID uuid.UUID, userID uuid.UUID) (string, *err
 	budgetTransactionSources, getBudgetTransactionSourcesError := GetBudgetTransactionSources(budgetID)
 
 	if getBudgetTransactionSourcesError != nil {
-		return "", getBudgetTransactionSourcesError
+		return nil, getBudgetTransactionSourcesError
 	}
 
 	expenses, expensesErr := expenseService.GetAllExpensesForBudget(budgetID, userID)
 
 	if expensesErr != nil {
-		return "", expensesErr
+		return nil, expensesErr
 	}
 
 	var txs = make([]plaid.Transaction, 0)
@@ -409,31 +446,126 @@ func GetBudgetExpenseSummary(budgetID uuid.UUID, userID uuid.UUID) (string, *err
 			time.Now().Local().Format("2006-01-02"))
 
 		if getTransactionsErr != nil {
-			return "", getTransactionsErr
+			return nil, getTransactionsErr
 		}
 
 		txs = append(txs, transactions...)
 	}
 
-	calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(expenses, txs)
+	budgetTransactionCategoryTransactions, budgetTransactionCategoryTransactionsErr := GetBudgetTransactionCategoryTransactions(budgetID)
+
+	if budgetTransactionCategoryTransactionsErr != nil {
+		return nil, budgetTransactionCategoryTransactionsErr
+	}
+
+	summary := calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(expenses, txs, budgetTransactionCategoryTransactions)
+
+	return &summary, nil
 	// plaidSerivce.PlaidClient().
 
-	return "hello", nil
+	// return "hello", nil
 }
 
-func calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(expenses []models.Expense, transactions []plaid.Transaction) {
+// GetAllBudgetTransactionCategories ...
+// Gets all budget transaction categories
+func GetAllBudgetTransactionCategories(budgetID uuid.UUID) ([]models.BudgetTransactionCategory, *errors.Error) {
+	connection := database.GetConnection()
+	defer database.CloseConnection(connection)
+
+	query := "SELECT * FROM budget_transaction_categories WHERE budget_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	res, execErr := stmt.Query(budgetID)
+
+	if execErr != nil {
+		return nil, &errors.Error{
+			StatusCode: http.StatusBadRequest,
+			Message:    execErr.Error(),
+		}
+	}
+
+	categories := make([]models.BudgetTransactionCategory, 0)
+
+	for res.Next() {
+		var temp models.BudgetTransactionCategory
+
+		scanErr := res.Scan(&temp.BudgetTransactionCategoryID, &temp.BudgetID, &temp.CategoryName)
+
+		if scanErr != nil {
+			panic(scanErr)
+		}
+
+		categories = append(categories, temp)
+	}
+
+	return categories, nil
+}
+
+func calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(
+	expenses []models.Expense,
+	transactions []plaid.Transaction,
+	categories []models.BudgetTransactionCategoryTransaction,
+) models.ExpenseSummary {
+	summary := models.ExpenseSummary{}
+
+	transactionCategoriesMap := make(map[string]string)
+	for _, cat := range categories {
+		transactionCategoriesMap[cat.TransactionName] = cat.CategoryName
+	}
+
+	res := make(map[string]models.ExpenseCategorySummary)
+	res["Uncategorized"] = models.ExpenseCategorySummary{
+		CategoryName:   "Uncategorized",
+		ExpenseLimit:   0.0,
+		CurrentExpense: 0.0,
+		Transactions:   make([]plaid.Transaction, 0),
+	}
+
 	for _, tx := range transactions {
-		fmt.Printf("%s: %f (%s)\n", tx.Name, tx.Amount, tx.Category[0])
+		if tx.Amount > 0 && tx.Category[0] != "Payment" && tx.Category[0] != "Transfer" {
+
+			var temp models.ExpenseCategorySummary
+
+			transactionCategory := transactionCategoriesMap[tx.Name]
+
+			if transactionCategory != "" {
+				if res[transactionCategory].CategoryName != "" {
+					temp := res[transactionCategory]
+					temp.CurrentExpense = temp.CurrentExpense + tx.Amount
+					temp.Transactions = append(temp.Transactions, tx)
+					res[transactionCategory] = temp
+				} else {
+					temp.CategoryName = transactionCategory
+					txs := make([]plaid.Transaction, 0)
+					temp.Transactions = append(txs, tx)
+					res[transactionCategory] = temp
+				}
+			} else {
+				temp := res["Uncategorized"]
+				temp.CurrentExpense += tx.Amount
+				temp.Transactions = append(temp.Transactions, tx)
+				res["Uncategorized"] = temp
+			}
+		}
 	}
-	fmt.Println("")
-	for _, exp := range expenses {
-		fmt.Printf("%s: %f\n", exp.ExpenseName, exp.ExpenseValue)
+
+	// other.CurrentExpense = value
+
+	arr := make([]models.ExpenseCategorySummary, 0)
+	for _, v := range res {
+		arr = append(arr, v)
 	}
+
+	summary.ExpenseCategories = arr
+
+	return summary
 }
 
 // GetTransactionCategories ...
 // Get transaction categories for a given budget
 func GetTransactionCategories(budgetID uuid.UUID) ([]models.BudgetTransactionCategory, *errors.Error) {
+
 	connection := database.GetConnection()
 
 	defer database.CloseConnection(connection)
@@ -471,10 +603,12 @@ func GetTransactionCategories(budgetID uuid.UUID) ([]models.BudgetTransactionCat
 // DeleteTransactionCategory ...
 // Deletes transaction category
 func DeleteTransactionCategory(categoryID uuid.UUID) *errors.Error {
+
 	connection := database.GetConnection()
 
 	defer database.CloseConnection(connection)
 
+	// TODO: Delete all transaction associations with category (CASCADE ACTION)
 	query := "DELETE FROM budget_transaction_categories where budget_transaction_category_id = $1"
 
 	stmt := database.PrepareStatement(connection, query)
@@ -493,7 +627,15 @@ func DeleteTransactionCategory(categoryID uuid.UUID) *errors.Error {
 
 // CreateTransactionCategory ...
 // Creates a transaction category for the given budget
-func CreateTransactionCategory(category models.BudgetTransactionCategoryCreationPayload) (*models.BudgetTransactionCategory, *errors.Error) {
+func CreateTransactionCategory(category models.BudgetTransactionCategoryCreationPayload, userID uuid.UUID) (*models.BudgetTransactionCategory, *errors.Error) {
+
+	if !roleService.IsUserAdmin(category.BudgetID, userID) && !roleService.IsUserOwner(category.BudgetID, userID) {
+		return nil, &errors.Error{
+			StatusCode: http.StatusForbidden,
+			Message:    "You are not authorized to create a transaction category for the given budget",
+		}
+	}
+
 	connection := database.GetConnection()
 
 	defer database.CloseConnection(connection)

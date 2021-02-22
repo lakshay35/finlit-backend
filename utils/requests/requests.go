@@ -49,7 +49,7 @@ func GetUserFromContext(c *gin.Context) (*models.User, *errors.Error) {
 	}
 
 	userObj := user.(models.User)
-	fmt.Println("returning user", userObj.GoogleID)
+
 	return &userObj, nil
 }
 
