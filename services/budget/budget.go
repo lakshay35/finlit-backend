@@ -79,8 +79,6 @@ func CreateBudgetTransactionSource(budgetTransactionSource models.BudgetTransact
 	connection := database.GetConnection()
 	defer database.CloseConnection(connection)
 
-	// TODO: Refactor into stored procedure call
-
 	query := "INSERT INTO budget_transaction_sources (external_account_id, budget_id) VALUES ($1, $2) RETURNING budget_transaction_source_id"
 
 	stmt := database.PrepareStatement(connection, query)
@@ -600,6 +598,52 @@ func GetTransactionCategories(budgetID uuid.UUID) ([]models.BudgetTransactionCat
 	return categories, nil
 }
 
+// DeleteTransactionCategoryTransactions ...
+func DeleteTransactionCategoryTransactions(transactionCategoryID uuid.UUID) *errors.Error {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	// TODO: Delete all transaction associations with category (CASCADE ACTION)
+	query := "DELETE FROM budget_transaction_category_transactions where budget_transaction_category_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	_, err := stmt.Exec(transactionCategoryID)
+
+	if err != nil {
+		return &errors.Error{
+			Message:    err.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	return nil
+}
+
+// DeleteBudgetTransactionCategoryExpense ...
+func DeleteBudgetTransactionCategoryExpense(transactionCategoryID uuid.UUID) *errors.Error {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	// TODO: Delete all transaction associations with category (CASCADE ACTION)
+	query := "DELETE FROM expenses where budget_transaction_category_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	_, err := stmt.Exec(transactionCategoryID)
+
+	if err != nil {
+		return &errors.Error{
+			Message:    err.Error(),
+			StatusCode: http.StatusBadRequest,
+		}
+	}
+
+	return nil
+}
+
 // DeleteTransactionCategory ...
 // Deletes transaction category
 func DeleteTransactionCategory(categoryID uuid.UUID) *errors.Error {
@@ -608,7 +652,18 @@ func DeleteTransactionCategory(categoryID uuid.UUID) *errors.Error {
 
 	defer database.CloseConnection(connection)
 
-	// TODO: Delete all transaction associations with category (CASCADE ACTION)
+	deleteExpenseErr := DeleteBudgetTransactionCategoryExpense(categoryID)
+
+	if deleteExpenseErr != nil {
+		return deleteExpenseErr
+	}
+
+	deleteTransactionCategoryTransactionsErr := DeleteTransactionCategoryTransactions(categoryID)
+
+	if deleteTransactionCategoryTransactionsErr != nil {
+		return deleteTransactionCategoryTransactionsErr
+	}
+
 	query := "DELETE FROM budget_transaction_categories where budget_transaction_category_id = $1"
 
 	stmt := database.PrepareStatement(connection, query)
