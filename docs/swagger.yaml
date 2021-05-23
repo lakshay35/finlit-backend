@@ -31,6 +31,10 @@ definitions:
         type: string
       expense_name:
         type: string
+      expense_transaction_categories:
+        items:
+          type: string
+        type: array
       expense_value:
         type: number
     type: object
@@ -57,6 +61,15 @@ definitions:
       budget_id:
         type: string
       category_name:
+        type: string
+    type: object
+  models.BudgetTransactionCategoryTransactionCreationPayload:
+    properties:
+      budget_id:
+        type: string
+      category_name:
+        type: string
+      transaction_name:
         type: string
     type: object
   models.BudgetTransactionSource:
@@ -102,8 +115,6 @@ definitions:
     properties:
       budget_id:
         type: string
-      budget_transaction_category_id:
-        type: string
       expense_charge_cycle:
         $ref: '#/definitions/models.ExpenseChargeCycle'
       expense_description:
@@ -112,11 +123,17 @@ definitions:
         type: string
       expense_name:
         type: string
+      expense_transaction_categories:
+        items:
+          type: string
+        type: array
       expense_value:
         type: number
     type: object
   models.ExpenseChargeCycle:
     properties:
+      days:
+        type: integer
       expense_charge_cycle_id:
         type: integer
       unit:
@@ -1005,6 +1022,37 @@ paths:
       summary: Registers user to the database
       tags:
       - User Roles
+  /transaction/categorize:
+    post:
+      consumes:
+      - application/json
+      description: Categorizes an transaction name to and expense category under the
+        specified budget
+      parameters:
+      - description: Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.BudgetTransactionCategoryTransactionCreationPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.BudgetTransactionCategoryTransactionCreationPayload'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Categorizes a transaction to an expense category
+      tags:
+      - Transactions
   /user/get:
     get:
       consumes:

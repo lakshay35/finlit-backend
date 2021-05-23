@@ -49,31 +49,29 @@ CREATE TABLE IF NOT EXISTS budgets (
 
 CREATE TABLE IF NOT EXISTS expense_charge_cycles (
   expense_charge_cycle_id SERIAL PRIMARY KEY,
-  unit VARCHAR (50) NOT NULL UNIQUE
+  unit VARCHAR (50) NOT NULL UNIQUE,
+  days INTEGER NOT NULL UNIQUE
 );
 
-insert into expense_charge_cycles (unit) VALUES ('annually') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('semi-annually') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('monthly') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('semi-monthly') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('bi-weekly') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('weekly') on conflict do nothing;
-insert into expense_charge_cycles (unit) VALUES ('daily') on conflict do nothing;
+insert into expense_charge_cycles (unit, days) VALUES ('annually', 365) on conflict do nothing;
+insert into expense_charge_cycles (unit, days) VALUES ('semi-annually', 182) on conflict do nothing;
+insert into expense_charge_cycles (unit, days) VALUES ('monthly', 30) on conflict do nothing;
+insert into expense_charge_cycles (unit, days) VALUES ('semi-monthly', 15) on conflict do nothing;
+insert into expense_charge_cycles (unit, days) VALUES ('bi-weekly', 14) on conflict do nothing;
+insert into expense_charge_cycles (unit, days) VALUES ('weekly', 7) on conflict do nothing;
+insert into expense_charge_cycles (unit, days) VALUES ('daily', 1) on conflict do nothing;
 
 CREATE TABLE IF NOT EXISTS	 expenses (
   expense_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   budget_id UUID NOT NULL,
   expense_name VARCHAR (255),
-  expense_value NUMERIC NOT NULL,
+  expense_value REAL NOT NULL,
   expense_description VARCHAR,
   expense_charge_cycle_id INT NOT NULL,
-  budget_transaction_category_id UUID NOT NULL,
   FOREIGN KEY (budget_id)
       REFERENCES budgets (budget_id),
   FOREIGN KEY (expense_charge_cycle_id)
       REFERENCES expense_charge_cycles (expense_charge_cycle_id)
-  FOREIGN KEY (budget_transaction_category_id)
-      REFERENCE budget_transaction_categories (budget_transaction_category_id)
 );
 
 CREATE TABLE IF NOT EXISTS user_roles (
@@ -115,3 +113,15 @@ CREATE TABLE IF NOT EXISTS budget_transaction_category_transactions (
   FOREIGN KEY (budget_transaction_category_id)
     REFERENCES budget_transaction_categories (budget_transaction_category_id)
 );
+
+
+CREATE TABLE IF NOT EXISTS budget_expense_transaction_categories (
+  budget_expense_transaction_category_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  expense_id UUID,
+  budget_transaction_category_id UUID,
+  FOREIGN KEY (expense_id)
+    REFERENCES expenses (expense_id),
+  FOREIGN KEY (budget_transaction_category_id)
+    REFERENCES budget_transaction_categories (budget_transaction_category_id)
+
+)

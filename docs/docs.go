@@ -1163,6 +1163,54 @@ var doc = `{
                 }
             }
         },
+        "/transaction/categorize": {
+            "post": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Categorizes an transaction name to and expense category under the specified budget",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Categorizes a transaction to an expense category",
+                "parameters": [
+                    {
+                        "description": "Payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.BudgetTransactionCategoryTransactionCreationPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.BudgetTransactionCategoryTransactionCreationPayload"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/user/get": {
             "get": {
                 "security": [
@@ -1305,6 +1353,12 @@ var doc = `{
                 "expense_name": {
                     "type": "string"
                 },
+                "expense_transaction_categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "expense_value": {
                     "type": "number"
                 }
@@ -1345,6 +1399,20 @@ var doc = `{
                     "type": "string"
                 },
                 "category_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.BudgetTransactionCategoryTransactionCreationPayload": {
+            "type": "object",
+            "properties": {
+                "budget_id": {
+                    "type": "string"
+                },
+                "category_name": {
+                    "type": "string"
+                },
+                "transaction_name": {
                     "type": "string"
                 }
             }
@@ -1416,9 +1484,6 @@ var doc = `{
                 "budget_id": {
                     "type": "string"
                 },
-                "budget_transaction_category_id": {
-                    "type": "string"
-                },
                 "expense_charge_cycle": {
                     "$ref": "#/definitions/models.ExpenseChargeCycle"
                 },
@@ -1431,6 +1496,12 @@ var doc = `{
                 "expense_name": {
                     "type": "string"
                 },
+                "expense_transaction_categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "expense_value": {
                     "type": "number"
                 }
@@ -1439,6 +1510,9 @@ var doc = `{
         "models.ExpenseChargeCycle": {
             "type": "object",
             "properties": {
+                "days": {
+                    "type": "integer"
+                },
                 "expense_charge_cycle_id": {
                     "type": "integer"
                 },

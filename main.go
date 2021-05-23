@@ -106,6 +106,10 @@ func main() {
 			expense.DELETE("/delete/:id", routes.DeleteExpense)
 			expense.PUT("/update", routes.UpdateExpense)
 		}
+		transaction := api.Group("/transaction")
+		{
+			transaction.POST("/categorize", routes.CategorizeExpense)
+		}
 	}
 
 	// TODO:

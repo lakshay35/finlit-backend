@@ -19,6 +19,8 @@ import (
 	"github.com/plaid/plaid-go/plaid"
 )
 
+// TODO: Migrate transaction category endpoints into transaction service
+
 // ParseBudget ...
 // Parses body to budget{} type
 // Throws error if body does not match
@@ -417,7 +419,7 @@ func GetBudgetTransactionCategoryTransactions(budgetID uuid.UUID) ([]models.Budg
 
 // GetBudgetExpenseSummary ...
 // Calculates the budget expense summary for the past 30 day period
-func GetBudgetExpenseSummary(budgetID uuid.UUID, userID uuid.UUID) (*models.ExpenseSummary, *errors.Error) {
+func GetBudgetExpenseSummary(budgetID uuid.UUID, userID uuid.UUID) ([]models.ExpenseSummary, *errors.Error) {
 	if !roleService.IsUserAdmin(budgetID, userID) && !roleService.IsUserOwner(budgetID, userID) {
 		return nil, &errors.Error{
 			Message:    "You are not entitled to this budget",
@@ -450,18 +452,71 @@ func GetBudgetExpenseSummary(budgetID uuid.UUID, userID uuid.UUID) (*models.Expe
 		txs = append(txs, transactions...)
 	}
 
+	budgetTransactionCategories, budgetTransactionCategoriesErr := GetAllBudgetTransactionCategories(budgetID)
+
+	if budgetTransactionCategoriesErr != nil {
+		return nil, budgetTransactionCategoriesErr
+	}
+
 	budgetTransactionCategoryTransactions, budgetTransactionCategoryTransactionsErr := GetBudgetTransactionCategoryTransactions(budgetID)
 
 	if budgetTransactionCategoryTransactionsErr != nil {
 		return nil, budgetTransactionCategoryTransactionsErr
 	}
 
-	summary := calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(expenses, txs, budgetTransactionCategoryTransactions)
+	budgetExpenseTransactionCategoryMappings, budgetExpenseTransactionCategoryMappingsErr := getBudgetExpenseTransactionCategoryMappings(budgetID)
 
-	return &summary, nil
+	if budgetExpenseTransactionCategoryMappingsErr != nil {
+		return nil, budgetExpenseTransactionCategoryMappingsErr
+	}
+
+	summary := calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(
+		expenses,
+		txs,
+		budgetTransactionCategoryTransactions,
+		budgetTransactionCategories,
+		budgetExpenseTransactionCategoryMappings,
+	)
+
+	return summary, nil
 	// plaidSerivce.PlaidClient().
 
 	// return "hello", nil
+}
+
+func getBudgetExpenseTransactionCategoryMappings(budgetID uuid.UUID) ([]models.ExpenseBudgetTransactionCategory, *errors.Error) {
+	connection := database.GetConnection()
+
+	defer database.CloseConnection(connection)
+
+	query := "select expense_id, betc.budget_transaction_category_id, category_name from budget_expense_transaction_categories betc join budget_transaction_categories btci on btci.budget_transaction_category_id = betc.budget_transaction_category_id WHERE btci.budget_id = $1"
+
+	stmt := database.PrepareStatement(connection, query)
+
+	res, mappingRetrievalErr := stmt.Query(budgetID)
+
+	if mappingRetrievalErr != nil {
+		return nil, &errors.Error{
+			StatusCode: http.StatusBadRequest,
+			Message:    mappingRetrievalErr.Error(),
+		}
+	}
+
+	expenseMappings := make([]models.ExpenseBudgetTransactionCategory, 0)
+
+	for res.Next() {
+		var temp models.ExpenseBudgetTransactionCategory
+
+		scanErr := res.Scan(&temp.ExpenseID, &temp.BudgeTransactionCategoryID, &temp.CategoryName)
+
+		if scanErr != nil {
+			panic(scanErr)
+		}
+
+		expenseMappings = append(expenseMappings, temp)
+	}
+
+	return expenseMappings, nil
 }
 
 // GetAllBudgetTransactionCategories ...
@@ -504,22 +559,35 @@ func calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(
 	expenses []models.Expense,
 	transactions []plaid.Transaction,
 	categories []models.BudgetTransactionCategoryTransaction,
-) models.ExpenseSummary {
-	summary := models.ExpenseSummary{}
+	budgetTransactionCategories []models.BudgetTransactionCategory,
+	budgetExpenseTransactionCategories []models.ExpenseBudgetTransactionCategory,
+) []models.ExpenseSummary {
 
+	summary := make([]models.ExpenseSummary, 0)
+
+	// map that holds transaction categories
 	transactionCategoriesMap := make(map[string]string)
 	for _, cat := range categories {
 		transactionCategoriesMap[cat.TransactionName] = cat.CategoryName
 	}
 
 	res := make(map[string]models.ExpenseCategorySummary)
+
+	// Add uncategorized transaction category
 	res["Uncategorized"] = models.ExpenseCategorySummary{
-		CategoryName:   "Uncategorized",
-		ExpenseLimit:   0.0,
-		CurrentExpense: 0.0,
-		Transactions:   make([]plaid.Transaction, 0),
+		CategoryName: "Uncategorized",
+		Transactions: make([]plaid.Transaction, 0),
 	}
 
+	// Populate transaction categories in map
+	for _, cat := range budgetTransactionCategories {
+		res[cat.CategoryName] = models.ExpenseCategorySummary{
+			CategoryName: cat.CategoryName,
+			Transactions: make([]plaid.Transaction, 0),
+		}
+	}
+
+	// For each transaction, add transaction tactionCategoriesMapo trans
 	for _, tx := range transactions {
 		if tx.Amount > 0 && tx.Category[0] != "Payment" && tx.Category[0] != "Transfer" {
 
@@ -530,7 +598,7 @@ func calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(
 			if transactionCategory != "" {
 				if res[transactionCategory].CategoryName != "" {
 					temp := res[transactionCategory]
-					temp.CurrentExpense = temp.CurrentExpense + tx.Amount
+					// temp.CurrentExpense = temp.CurrentExpense + tx.Amount
 					temp.Transactions = append(temp.Transactions, tx)
 					res[transactionCategory] = temp
 				} else {
@@ -541,7 +609,7 @@ func calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(
 				}
 			} else {
 				temp := res["Uncategorized"]
-				temp.CurrentExpense += tx.Amount
+				// temp.CurrentExpense += tx.Amount
 				temp.Transactions = append(temp.Transactions, tx)
 				res["Uncategorized"] = temp
 			}
@@ -550,12 +618,56 @@ func calculatedBudgetExpenseSummaryUsingTransactionsAndExpenses(
 
 	// other.CurrentExpense = value
 
-	arr := make([]models.ExpenseCategorySummary, 0)
-	for _, v := range res {
-		arr = append(arr, v)
+	budgetExpenseTransactionCategoriesMap := make(map[uuid.UUID][]string)
+
+	for _, cat := range budgetExpenseTransactionCategories {
+		if len(budgetExpenseTransactionCategoriesMap[cat.ExpenseID]) == 0 {
+			arr := make([]string, 0)
+			arr = append(arr, cat.CategoryName)
+			budgetExpenseTransactionCategoriesMap[cat.ExpenseID] = arr
+		} else {
+			budgetExpenseTransactionCategoriesMap[cat.ExpenseID] = append(budgetExpenseTransactionCategoriesMap[cat.ExpenseID], cat.CategoryName)
+		}
 	}
 
-	summary.ExpenseCategories = arr
+	for _, expense := range expenses {
+		categories := budgetExpenseTransactionCategoriesMap[expense.ExpenseID]
+
+		sum := models.ExpenseSummary{
+			ExpenseName:            expense.ExpenseName,
+			ExpenseLimit:           float64(expense.ExpenseValue),
+			ExpenseChargeCycleDays: expense.ExpenseChargeCycle.Days,
+		}
+
+		for _, category := range categories {
+
+			countedTransactions := make([]plaid.Transaction, 0)
+
+			for _, tx := range res[category].Transactions {
+
+				txDate, txDateErr := time.Parse("2006-01-02", tx.Date)
+
+				if txDateErr != nil {
+					panic(txDateErr)
+				}
+
+				if !txDate.Before(time.Now().AddDate(0, 0, -expense.ExpenseChargeCycle.Days)) {
+					countedTransactions = append(countedTransactions, tx)
+					sum.CurrentExpense += tx.Amount
+				}
+			}
+
+			expenseCat := res[category]
+
+			expenseCat.Transactions = countedTransactions
+
+			sum.ExpenseCategories = append(sum.ExpenseCategories, expenseCat)
+
+		}
+
+		summary = append(summary, sum)
+
+	}
 
 	return summary
 }

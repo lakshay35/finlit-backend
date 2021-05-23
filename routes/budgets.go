@@ -263,7 +263,7 @@ func DeleteBudget(c *gin.Context) {
 // @Produce  json
 // @Param Budget-ID header string true "Budget ID to get expense summary for"
 // @Security Google AccessToken
-// Success 200 {object} models.ExpenseSummary
+// Success 200 {array} models.ExpenseSummary
 // @Failure 403 {object} errors.Error
 // @Router /budget/get-expense-summary [get]
 func GetBudgetExpenseSummary(c *gin.Context) {
