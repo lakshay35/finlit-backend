@@ -60,7 +60,6 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 			}
 			c.Set("USER", *user)
 		} else {
-			fmt.Println("setting userid", tokenInfo.UserId)
 			c.Set("USERID", tokenInfo.UserId)
 		}
 

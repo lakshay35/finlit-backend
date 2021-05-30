@@ -1,7 +1,6 @@
 package account
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -10,6 +9,8 @@ import (
 	"github.com/lakshay35/finlit-backend/models/errors"
 	plaidService "github.com/lakshay35/finlit-backend/services/plaid"
 	"github.com/lakshay35/finlit-backend/utils/database"
+	"github.com/lakshay35/finlit-backend/utils/encryption"
+	externalAccountUtils "github.com/lakshay35/finlit-backend/utils/external_account"
 	"github.com/plaid/plaid-go/plaid"
 )
 
@@ -93,7 +94,7 @@ func GetExternalAccount(accountID uuid.UUID) (*models.Account, *errors.Error) {
 
 // LinkTokenCreate creates a link token using the specified parameters
 func LinkTokenCreate(
-	paymentInitiation *plaid.PaymentInitiation,
+	paymentInitiation *plaid.PaymentInitiation, userId string,
 ) (string, *errors.Error) {
 	countryCodes := strings.Split(plaidService.PlaidCountryCodes, ",")
 	products := strings.Split(plaidService.PlaidProducts, ",")
@@ -101,7 +102,7 @@ func LinkTokenCreate(
 	configs := plaid.LinkTokenConfigs{
 		User: &plaid.LinkTokenUser{
 			// This should correspond to a unique id for the current user.
-			ClientUserID: "user-id",
+			ClientUserID: userId,
 		},
 		ClientName:        "Plaid Quickstart",
 		Products:          products,
@@ -145,7 +146,13 @@ func GetAccountAccessToken(accountID uuid.UUID) string {
 		panic(err)
 	}
 
-	return access_token
+	b64d, b64dError := encryption.DecodeBase64(access_token)
+
+	if b64dError != nil {
+		panic(b64dError)
+	}
+
+	return string(encryption.Decrypt([]byte([]byte(b64d))))
 }
 
 // RegisterExternalAccounts ...
@@ -160,14 +167,13 @@ func RegisterExternalAccounts(accessToken string, userID uuid.UUID) {
 	stmt, err := connection.Prepare(query)
 
 	if err != nil {
-		fmt.Println(err)
-		panic("Something went wrong while preparing query")
+		panic(err)
 	}
 
 	accounts := GetAccountsForAccessToken(accessToken)
 
 	for _, act := range accounts {
-		_, err = stmt.Exec(act.AccountID, accessToken, act.OfficialName+" "+act.Name, userID)
+		_, err = stmt.Exec(act.AccountID, encryption.EncodeBase64(string(encryption.Encrypt([]byte(accessToken)))), act.OfficialName+" "+act.Name, userID)
 
 		if err != nil {
 			panic("Error occurred when looping over bank accounts from plaid")
@@ -187,8 +193,8 @@ func GetAllExternalAccounts(userID uuid.UUID) ([]models.Account, *errors.Error) 
 	stmt, err := connection.Prepare(query)
 
 	if err != nil {
-		fmt.Println(err)
-		panic("Error preparing statement to get user bank accounts")
+		panic(err)
+
 	}
 
 	rows, err := stmt.Query(userID)
@@ -260,7 +266,11 @@ func GetTransactions(
 		}
 	}
 
-	response, err := plaidService.PlaidClient().GetTransactions(externalAccount.AccessToken, startDate, endDate)
+	response, err := plaidService.PlaidClient().GetTransactions(
+		externalAccountUtils.ConvertToAccessToken(externalAccount.AccessToken),
+		startDate,
+		endDate,
+	)
 
 	if err != nil {
 		return nil, &errors.Error{
@@ -293,8 +303,9 @@ func GetAccountInformation(
 			Message:    "External Account not found",
 		}
 	}
-
-	response, err := plaidService.PlaidClient().GetAccounts(externalAccount.AccessToken)
+	response, err := plaidService.PlaidClient().GetAccounts(
+		externalAccountUtils.ConvertToAccessToken(externalAccount.AccessToken),
+	)
 
 	if err != nil {
 		return nil, &errors.Error{
@@ -310,8 +321,6 @@ func GetAccountInformation(
 			account = act
 		}
 	}
-
-	fmt.Println(account)
 
 	return &account, nil
 }

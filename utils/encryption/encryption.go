@@ -3,25 +3,41 @@ package encryption
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/md5"
+	"crypto/rand"
 	b64 "encoding/base64"
+	"encoding/hex"
+	"io"
+
+	environment "github.com/lakshay35/finlit-backend/services/environment"
 )
 
-var iv = []byte{35, 46, 57, 24, 85, 35, 24, 74, 87, 35, 88, 98, 66, 32, 14, 05}
+var passphrase = environment.GetEnvVariable("DB_ENCRYPTION_KEY")
 
-const encryptionKey = "SDSDFSDFSDFSDFDSFSDFSDFSDF"
+func createHash(key string) string {
+	hasher := md5.New()
+	_, err := hasher.Write([]byte(key))
 
-// Encrypt ...
-func Encrypt(text string) string {
-	block, err := aes.NewCipher([]byte(encryptionKey))
 	if err != nil {
 		panic(err)
 	}
-	plaintext := []byte(text)
-	cfb := cipher.NewCFBEncrypter(block, iv)
-	ciphertext := make([]byte, len(plaintext))
-	cfb.XORKeyStream(ciphertext, plaintext)
 
-	return EncodeBase64(text)
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+// Encrypt ...
+func Encrypt(data []byte) []byte {
+	block, _ := aes.NewCipher([]byte(createHash(passphrase)))
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		panic(err.Error())
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		panic(err.Error())
+	}
+	ciphertext := gcm.Seal(nonce, nonce, data, nil)
+	return ciphertext
 }
 
 // EncodeBase64 ...
@@ -42,21 +58,22 @@ func DecodeBase64(text string) (string, error) {
 	return string(sDec), nil
 }
 
-// Decrypt ...
-func Decrypt(text string) string {
-	block, err := aes.NewCipher([]byte(encryptionKey))
+// Decrypt...
+func Decrypt(data []byte) []byte {
+	key := []byte(createHash(passphrase))
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
-	ciphertext, err := DecodeBase64(text)
-
+	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
-
-	cfb := cipher.NewCFBEncrypter(block, iv)
-	plaintext := make([]byte, len(ciphertext))
-	cfb.XORKeyStream(plaintext, []byte(ciphertext))
-
-	return string(ciphertext)
+	nonceSize := gcm.NonceSize()
+	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	return plaintext
 }

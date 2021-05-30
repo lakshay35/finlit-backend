@@ -25,8 +25,6 @@ func GetExpense(id uuid.UUID) (*models.Expense, error) {
 
 	var expense models.Expense
 
-	fmt.Println("Querying for expenses with id ", id)
-
 	err := stmt.QueryRow(id).Scan(
 		&expense.ExpenseID,
 		&expense.BudgetID,
@@ -371,8 +369,7 @@ func AddExpenseToBudget(expense *models.AddExpensePayload, userID uuid.UUID) (*m
 	).Scan(&expenseResult.ExpenseID)
 
 	if dbError != nil {
-		fmt.Println(dbError.Error())
-		panic("Something went wrong while adding expense")
+		panic(dbError)
 	}
 
 	// createBudgetExpenseTransactionCategoryMappings(expense.ExpenseTransactionCategories, expenseResult.ExpenseID, expense.BudgetID)

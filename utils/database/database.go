@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 )
 
@@ -13,7 +12,7 @@ var database *sql.DB
 // for API
 func InitializeDatabase() {
 	connectionString := os.Getenv("DATABASE_URL")
-	fmt.Println("db string " + connectionString)
+
 	db, err := sql.Open("postgres", connectionString)
 
 	if err != nil {
@@ -55,7 +54,6 @@ func CloseConnection(tx *sql.Tx) {
 func PrepareStatement(tx *sql.Tx, query string) *sql.Stmt {
 	stmt, err := tx.Prepare(query)
 	if err != nil {
-		fmt.Println("Error occurred while preparing statement", err.Error())
 		panic(err)
 	}
 

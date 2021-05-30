@@ -153,7 +153,6 @@ func GetBudgetTransactionSource(budgetTransactionSourceID uuid.UUID) (*models.Bu
 	err := stmt.QueryRow(budgetTransactionSourceID).Scan(&res.BudgetTransactionSourceID, &res.ExternalAccountID, &res.BudgetID)
 
 	if err != nil {
-		fmt.Println("no budget exists for id", budgetTransactionSourceID)
 		return nil, &errors.Error{
 			Message:    "No budget transaction source exists with provided id",
 			StatusCode: http.StatusNotFound,
@@ -259,8 +258,6 @@ func CreateBudget(userID uuid.UUID, budgetName string) (*models.Budget, *errors.
 		&result.BudgetName,
 		&result.BudgetID,
 	)
-
-	fmt.Println(result)
 
 	if errr != nil {
 		panic(errr)

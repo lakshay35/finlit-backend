@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -82,7 +81,6 @@ func GetAllExpenses(c *gin.Context) {
 	user, errr := requests.GetUserFromContext(c)
 
 	if errr != nil {
-		fmt.Println(err.Error())
 		panic(err)
 	}
 

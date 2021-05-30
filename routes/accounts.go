@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -198,8 +197,6 @@ func GetTransactions(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(transactions)
-
 	c.JSON(
 		http.StatusOK,
 		transactions,
@@ -218,7 +215,13 @@ func GetTransactions(c *gin.Context) {
 // @Failure 400 {object} models.Error
 // @Router /account/create-link-token [get]
 func CreateLinkToken(c *gin.Context) {
-	linkToken, err := accountsService.LinkTokenCreate(nil)
+	user, userError := requests.GetUserFromContext(c)
+
+	if userError != nil {
+		panic(userError)
+	}
+
+	linkToken, err := accountsService.LinkTokenCreate(nil, user.GoogleID)
 
 	if err != nil {
 		requests.ThrowError(
