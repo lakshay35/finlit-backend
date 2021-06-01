@@ -92,6 +92,32 @@ func GetExternalAccount(accountID uuid.UUID) (*models.Account, *errors.Error) {
 	return &externalAccount, nil
 }
 
+// GetAccessTokenRenewalLinkToken...
+func GetAccessTokenRenewalLinkToken(userId string, externalAccountId uuid.UUID) string {
+	countryCodes := strings.Split(plaidService.PlaidCountryCodes, ",")
+	products := strings.Split(plaidService.PlaidProducts, ",")
+
+	config := plaid.LinkTokenConfigs{
+		User: &plaid.LinkTokenUser{
+			// This should correspond to a unique id for the current user.
+			ClientUserID: userId,
+		},
+		ClientName:   "Plaid Quickstart",
+		Products:     products,
+		CountryCodes: countryCodes,
+		Language:     "en",
+		AccessToken:  GetAccountAccessToken(externalAccountId),
+	}
+
+	renewalLinkToken, renewalLinkTokenErr := plaidService.PlaidClient().CreateLinkToken(config)
+
+	if renewalLinkTokenErr != nil {
+		panic(renewalLinkTokenErr)
+	}
+
+	return renewalLinkToken.LinkToken
+}
+
 // LinkTokenCreate creates a link token using the specified parameters
 func LinkTokenCreate(
 	paymentInitiation *plaid.PaymentInitiation, userId string,

@@ -11,3 +11,7 @@ type Account struct {
 	AccessToken       string    `json:"access_token,omitempty"`
 	InstitutionalID   string    `json:"institutional_id,omitempty"`
 }
+
+type AccountIdPayload struct {
+	ExternalAccountID uuid.UUID `json:"external_account_id"`
+}

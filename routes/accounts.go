@@ -203,6 +203,38 @@ func GetTransactions(c *gin.Context) {
 	)
 }
 
+// RenewAccessToken ...
+// Renews Access token
+// @Summary Renew Access Token
+// @Description Creates a link token to setup UI for renewing access tokens
+// @Tags External Accounts
+// @Accept  json
+// @Produce  json
+// @Security Google AccessToken
+// @Param account body models.AccessTokenPayload true "Access Token payload"
+// @Success 200 {object} models.AccountIdPayload
+// @Failure 400 {object} models.Error
+// @Router /account/create-link-token [get]
+func RenewAccessToken(c *gin.Context) {
+	var body models.AccountIdPayload
+
+	parseError := requests.ParseBody(c, &body)
+
+	if parseError != nil {
+		return
+	}
+
+	user, userError := requests.GetUserFromContext(c)
+
+	if userError != nil {
+		panic(userError)
+	}
+
+	c.JSON(http.StatusOK, &models.LinkTokenPayload{
+		LinkToken: accountsService.GetAccessTokenRenewalLinkToken(user.UserID.String(), body.ExternalAccountID),
+	})
+}
+
 // CreateLinkToken ...
 // Creates link token
 // @Summary Create Link Token

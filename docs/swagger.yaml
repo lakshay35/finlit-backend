@@ -6,6 +6,11 @@ definitions:
       status_code:
         type: integer
     type: object
+  models.AccessTokenPayload:
+    properties:
+      access_token:
+        type: string
+    type: object
   models.Account:
     properties:
       access_token:
@@ -17,6 +22,11 @@ definitions:
       institutional_id:
         type: string
       user_id:
+        type: string
+    type: object
+  models.AccountIdPayload:
+    properties:
+      external_account_id:
         type: string
     type: object
   models.AddExpensePayload:

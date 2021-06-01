@@ -1315,6 +1315,14 @@ var doc = `{
                 }
             }
         },
+        "models.AccessTokenPayload": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Account": {
             "type": "object",
             "properties": {
@@ -1331,6 +1339,14 @@ var doc = `{
                     "type": "string"
                 },
                 "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.AccountIdPayload": {
+            "type": "object",
+            "properties": {
+                "external_account_id": {
                     "type": "string"
                 }
             }

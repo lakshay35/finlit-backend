@@ -97,6 +97,7 @@ func main() {
 			account.POST("/register-token", routes.RegisterAccessToken)
 			account.GET("/get-account/:external-account-id", routes.GetAccountByID)
 			account.DELETE("/delete/:external-account-id", routes.DeleteAccount)
+			account.POST("/renew-access-token", routes.RenewAccessToken)
 		}
 		expense := api.Group("/expense")
 		{
