@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	accountsService "github.com/lakshay35/finlit-backend/services/account"
-	plaidService "github.com/lakshay35/finlit-backend/services/plaid"
 	"github.com/lakshay35/finlit-backend/utils/logging"
 	"github.com/lakshay35/finlit-backend/utils/requests"
 )
@@ -57,20 +56,26 @@ func GetAccountInformation(c *gin.Context) {
 // @Produce  json
 // @Security Google AccessToken
 // @Success 200 {array} models.PlaidGetBalancesResponse
-// @Failure  400 {object} models.Error
+// @Failure  501 {object} models.Error
 // @Router /account/live-balances [get]
+// TODO: Implement method
 func GetCurrentBalances(c *gin.Context) {
-	response, err := plaidService.PlaidClient().GetBalances("accessToken")
+	requests.ThrowError(
+		c,
+		http.StatusNotImplemented,
+		"METHOD NOT IMPLEMENTED",
+	)
+	// response, err := plaidService.PlaidClient().GetBalances("accessToken")
 
-	if err != nil {
-		requests.ThrowError(
-			c,
-			http.StatusBadRequest,
-			err.Error(),
-		)
-	}
+	// if err != nil {
+	// 	requests.ThrowError(
+	// 		c,
+	// 		http.StatusBadRequest,
+	// 		err.Error(),
+	// 	)
+	// }
 
-	c.JSON(http.StatusOK, response.Accounts)
+	// c.JSON(http.StatusOK, response.Accounts)
 }
 
 // DeleteAccount ...
@@ -214,7 +219,7 @@ func GetTransactions(c *gin.Context) {
 // @Param account body models.AccessTokenPayload true "Access Token payload"
 // @Success 200 {object} models.AccountIdPayload
 // @Failure 400 {object} models.Error
-// @Router /account/create-link-token [get]
+// @Router /account/renew-access-token [post]
 func RenewAccessToken(c *gin.Context) {
 	var body models.AccountIdPayload
 

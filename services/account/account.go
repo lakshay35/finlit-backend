@@ -214,7 +214,7 @@ func GetAllExternalAccounts(userID uuid.UUID) ([]models.Account, *errors.Error) 
 
 	defer database.CloseConnection(connection)
 
-	query := "SELECT * FROM external_accounts WHERE user_id = $1"
+	query := "SELECT external_account_id, institutional_id, user_id, account_name FROM external_accounts WHERE user_id = $1"
 
 	stmt, err := connection.Prepare(query)
 
@@ -241,7 +241,6 @@ func GetAllExternalAccounts(userID uuid.UUID) ([]models.Account, *errors.Error) 
 			&temp.ExternalAccountID,
 			&temp.InstitutionalID,
 			&temp.UserID,
-			&temp.AccessToken,
 			&temp.AccountName,
 		)
 

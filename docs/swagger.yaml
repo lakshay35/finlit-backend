@@ -149,6 +149,22 @@ definitions:
       unit:
         type: string
     type: object
+  models.FitnessCheckInPayload:
+    properties:
+      active_today:
+        type: boolean
+      note:
+        type: string
+    type: object
+  models.FitnessHistoryRecord:
+    properties:
+      active_today:
+        type: boolean
+      date:
+        type: string
+      note:
+        type: string
+    type: object
   models.LinkTokenPayload:
     properties:
       linkToken:
@@ -474,8 +490,8 @@ paths:
             items:
               $ref: '#/definitions/models.PlaidGetBalancesResponse'
             type: array
-        "400":
-          description: Bad Request
+        "501":
+          description: Not Implemented
           schema:
             $ref: '#/definitions/models.Error'
       security:
@@ -507,6 +523,34 @@ paths:
       security:
       - Google AccessToken: []
       summary: Register Access Token
+      tags:
+      - External Accounts
+  /account/renew-access-token:
+    post:
+      consumes:
+      - application/json
+      description: Creates a link token to setup UI for renewing access tokens
+      parameters:
+      - description: Access Token payload
+        in: body
+        name: account
+        required: true
+        schema:
+          $ref: '#/definitions/models.AccessTokenPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AccountIdPayload'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Renew Access Token
       tags:
       - External Accounts
   /account/transactions:
@@ -1009,6 +1053,59 @@ paths:
       summary: Adds an expense to the database
       tags:
       - Budget Expenses
+  /fitness-tracker/check-in:
+    post:
+      consumes:
+      - application/json
+      description: Checks in users status
+      parameters:
+      - description: Check-in payload to track user activity status
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.FitnessCheckInPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FitnessHistoryRecord'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Check in status
+      tags:
+      - Fitness Tracker
+  /fitness-tracker/history:
+    get:
+      consumes:
+      - application/json
+      description: Get user fitness history records with notes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FitnessHistoryRecord'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Gets user fitness history
+      tags:
+      - Fitness Tracker
   /role/add-user-role-to-budget:
     post:
       consumes:

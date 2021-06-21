@@ -125,3 +125,13 @@ CREATE TABLE IF NOT EXISTS budget_expense_transaction_categories (
     REFERENCES budget_transaction_categories (budget_transaction_category_id)
 
 )
+
+CREATE TABLE IF NOT EXISTS fitness_tracker_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  active_today BOOLEAN NOT NULL,
+  note TEXT NOT NULL,
+  user_id UUID NOT NULL,
+  FOREIGN KEY (user_id)
+    REFERENCES users (user_id)
+)

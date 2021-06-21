@@ -111,6 +111,12 @@ func main() {
 		{
 			transaction.POST("/categorize", routes.CategorizeExpense)
 		}
+		fitnessTracker := api.Group("/fitness-tracker")
+		{
+			fitnessTracker.GET("/history", routes.GetUserFitnessHistory)
+			fitnessTracker.POST("/check-in", routes.CheckIn)
+		}
+
 	}
 
 	// TODO:
