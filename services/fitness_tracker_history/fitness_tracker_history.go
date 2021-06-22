@@ -71,9 +71,15 @@ func HasUserCheckedIn(userId uuid.UUID) bool {
 
 	var count int
 
-	logging.InfoLogger.Println("Using userId " + userId.String() + " and time " + time.Now().Format("01-02-2006"))
+	est, estErr := time.LoadLocation("EST")
 
-	_ = stmt.QueryRow(userId, time.Now().Format("01-02-2006")).Scan(&count)
+	if estErr != nil {
+		panic(estErr)
+	}
+
+	logging.InfoLogger.Println("Using userId " + userId.String() + " and time " + time.Now().In(est).Format("01-02-2006"))
+
+	_ = stmt.QueryRow(userId, time.Now().In(est).Format("01-02-2006")).Scan(&count)
 
 	return count > 0
 }
