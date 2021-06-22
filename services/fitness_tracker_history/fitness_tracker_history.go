@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	"github.com/lakshay35/finlit-backend/utils/database"
-	"github.com/lakshay35/finlit-backend/utils/logging"
 )
 
 func GetUserFitnessHistory(userId uuid.UUID) []models.FitnessHistoryRecord {
@@ -90,8 +89,6 @@ func HasUserCheckedIn(userId uuid.UUID) bool {
 	}
 
 	currentTime := time.Now().In(est).Format("01-02-2006")
-
-	logging.InfoLogger.Println("Using userId " + userId.String() + " and time " + currentTime)
 
 	_ = stmt.QueryRow(userId, currentTime).Scan(&count)
 
