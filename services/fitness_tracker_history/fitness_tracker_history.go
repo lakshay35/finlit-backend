@@ -12,6 +12,8 @@ import (
 func GetUserFitnessHistory(userId uuid.UUID) []models.FitnessHistoryRecord {
 	conn := database.GetConnection()
 
+	defer database.CloseConnection(conn)
+
 	query := "Select active_today, date, note from fitness_tracker_history WHERE user_id = $1"
 
 	stmt := database.PrepareStatement(conn, query)
@@ -49,11 +51,19 @@ func CheckIn(userId uuid.UUID, activeToday bool, note string) *models.Error {
 
 	defer database.CloseConnection(conn)
 
-	query := "INSERT INTO fitness_tracker_history (active_today, note, user_id) VALUES ($1, $2, $3)"
+	query := "INSERT INTO fitness_tracker_history (active_today, note, user_id, date) VALUES ($1, $2, $3, $4)"
 
 	stmt := database.PrepareStatement(conn, query)
 
-	_, execError := stmt.Exec(activeToday, note, userId)
+	est, estErr := time.LoadLocation("EST")
+
+	if estErr != nil {
+		panic(estErr)
+	}
+
+	currentTime := time.Now().In(est).Format("01-02-2006")
+
+	_, execError := stmt.Exec(activeToday, note, userId, currentTime)
 
 	if execError != nil {
 		panic(execError)
@@ -64,6 +74,8 @@ func CheckIn(userId uuid.UUID, activeToday bool, note string) *models.Error {
 
 func HasUserCheckedIn(userId uuid.UUID) bool {
 	conn := database.GetConnection()
+
+	defer database.CloseConnection(conn)
 
 	query := "SELECT COUNT(*) as count FROM fitness_tracker_history WHERE user_id = $1 AND date = $2"
 
