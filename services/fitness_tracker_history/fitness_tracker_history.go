@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lakshay35/finlit-backend/models"
 	"github.com/lakshay35/finlit-backend/utils/database"
+	"github.com/lakshay35/finlit-backend/utils/logging"
 )
 
 func GetUserFitnessHistory(userId uuid.UUID) []models.FitnessHistoryRecord {
@@ -46,6 +47,8 @@ func CheckIn(userId uuid.UUID, activeToday bool, note string) *models.Error {
 	}
 	conn := database.GetConnection()
 
+	defer database.CloseConnection(conn)
+
 	query := "INSERT INTO fitness_tracker_history (active_today, note, user_id) VALUES ($1, $2, $3)"
 
 	stmt := database.PrepareStatement(conn, query)
@@ -67,6 +70,8 @@ func HasUserCheckedIn(userId uuid.UUID) bool {
 	stmt := database.PrepareStatement(conn, query)
 
 	var count int
+
+	logging.InfoLogger.Println("Using userId " + userId.String() + " and time " + time.Now().Format("01-02-2006"))
 
 	_ = stmt.QueryRow(userId, time.Now().Format("01-02-2006")).Scan(&count)
 

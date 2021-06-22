@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -59,7 +58,7 @@ func CheckIn(c *gin.Context) {
 	}
 
 	checkInError := fitness_tracker_history.CheckIn(user.UserID, payload.ActiveToday, payload.Note)
-	fmt.Println(checkInError == nil)
+
 	if checkInError != nil {
 		requests.ThrowError(
 			c,
