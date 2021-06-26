@@ -1219,6 +1219,40 @@ var doc = `{
                 }
             }
         },
+        "/fitness-tracker/check-in-status": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Checks if user has checked in",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fitness Tracker"
+                ],
+                "summary": "Check in status retrieval",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/fitness-tracker/history": {
             "get": {
                 "security": [

@@ -71,3 +71,25 @@ func CheckIn(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+// CheckInStatus ...
+// @Summary Check in status retrieval
+// @Description Checks if user has checked in
+// @Tags Fitness Tracker
+// @Accept  json
+// @Produce  json
+// @Security Google AccessToken
+// @Success 200 {boolean} boolean
+// @Failure 403 {object} models.Error
+// @Router /fitness-tracker/check-in-status [get]
+func CheckInStatus(c *gin.Context) {
+	user, getUserErr := requests.GetUserFromContext(c)
+
+	if getUserErr != nil {
+		panic(getUserErr)
+	}
+
+	hasUserCheckedIn := fitness_tracker_history.HasUserCheckedIn(user.UserID)
+
+	c.JSON(http.StatusOK, hasUserCheckedIn)
+}

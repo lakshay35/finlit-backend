@@ -115,6 +115,7 @@ func main() {
 		{
 			fitnessTracker.GET("/history", routes.GetUserFitnessHistory)
 			fitnessTracker.POST("/check-in", routes.CheckIn)
+			fitnessTracker.GET("/check-in-status", routes.CheckInStatus)
 		}
 
 	}

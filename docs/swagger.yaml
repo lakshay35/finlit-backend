@@ -1083,6 +1083,27 @@ paths:
       summary: Check in status
       tags:
       - Fitness Tracker
+  /fitness-tracker/check-in-status:
+    get:
+      consumes:
+      - application/json
+      description: Checks if user has checked in
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: boolean
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Check in status retrieval
+      tags:
+      - Fitness Tracker
   /fitness-tracker/history:
     get:
       consumes:
