@@ -1204,10 +1204,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FitnessHistoryRecord"
-                            }
+                            "$ref": "#/definitions/models.FitnessHistoryRecord"
                         }
                     },
                     "403": {
@@ -1271,6 +1268,52 @@ var doc = `{
                     "Fitness Tracker"
                 ],
                 "summary": "Gets user fitness history",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Page number of record",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.FitnessHistoryRecord"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/fitness-tracker/recent-history": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Retrieves user's most recent 5 checkins",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fitness Tracker"
+                ],
+                "summary": "Gets user's most recent checkin history",
                 "responses": {
                     "200": {
                         "description": "OK",

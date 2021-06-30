@@ -114,6 +114,7 @@ func main() {
 		fitnessTracker := api.Group("/fitness-tracker")
 		{
 			fitnessTracker.GET("/history", routes.GetUserFitnessHistory)
+			fitnessTracker.GET("/recent-history", routes.GetRecentUserFitnessHistory)
 			fitnessTracker.POST("/check-in", routes.CheckIn)
 			fitnessTracker.GET("/check-in-status", routes.CheckInStatus)
 		}

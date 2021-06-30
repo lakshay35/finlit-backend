@@ -1071,9 +1071,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FitnessHistoryRecord'
-            type: array
+            $ref: '#/definitions/models.FitnessHistoryRecord'
         "403":
           description: Forbidden
           schema:
@@ -1109,6 +1107,12 @@ paths:
       consumes:
       - application/json
       description: Get user fitness history records with notes
+      parameters:
+      - description: Page number of record
+        in: query
+        name: page
+        required: true
+        type: number
       produces:
       - application/json
       responses:
@@ -1125,6 +1129,29 @@ paths:
       security:
       - Google AccessToken: []
       summary: Gets user fitness history
+      tags:
+      - Fitness Tracker
+  /fitness-tracker/recent-history:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves user's most recent 5 checkins
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FitnessHistoryRecord'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Gets user's most recent checkin history
       tags:
       - Fitness Tracker
   /role/add-user-role-to-budget:

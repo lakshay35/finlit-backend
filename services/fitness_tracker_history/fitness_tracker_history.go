@@ -8,16 +8,26 @@ import (
 	"github.com/lakshay35/finlit-backend/utils/database"
 )
 
-func GetUserFitnessHistory(userId uuid.UUID) []models.FitnessHistoryRecord {
+// GetUserFitnessHistory...
+// Retrieves user fitness history
+func GetUserFitnessHistory(userId uuid.UUID, pageIndex int) (*models.FitnessHistory, *models.Error) {
+	totalRecords, totalPages := TotalPagesAndRecords(userId)
+
+	if pageIndex >= totalPages || pageIndex < 0 {
+		return nil, &models.Error{
+			Error:  true,
+			Reason: "Page index is out of bounds",
+		}
+	}
 	conn := database.GetConnection()
 
 	defer database.CloseConnection(conn)
 
-	query := "Select active_today, date, note from fitness_tracker_history WHERE user_id = $1"
+	query := "Select active_today, date, note from fitness_tracker_history WHERE user_id = $1 LIMIT 10 OFFSET $2"
 
 	stmt := database.PrepareStatement(conn, query)
 
-	rows, queryError := stmt.Query(userId)
+	rows, queryError := stmt.Query(userId, pageIndex*10)
 
 	if queryError != nil {
 		panic(queryError)
@@ -36,12 +46,19 @@ func GetUserFitnessHistory(userId uuid.UUID) []models.FitnessHistoryRecord {
 		result = append(result, record)
 	}
 
-	return result
+	return &models.FitnessHistory{
+		TotalRecords: totalRecords,
+		Records:      result,
+		PageIndex:    pageIndex,
+		TotalPages:   totalPages,
+	}, nil
 }
 
-func CheckIn(userId uuid.UUID, activeToday bool, note string) *models.Error {
+// CheckIn...
+// Records user fitness checkin
+func CheckIn(userId uuid.UUID, activeToday bool, note string) (*models.FitnessHistoryRecord, *models.Error) {
 	if HasUserCheckedIn(userId) {
-		return &models.Error{
+		return nil, &models.Error{
 			Error:  true,
 			Reason: "You have already checked in for today",
 		}
@@ -68,9 +85,15 @@ func CheckIn(userId uuid.UUID, activeToday bool, note string) *models.Error {
 		panic(execError)
 	}
 
-	return nil
+	return &models.FitnessHistoryRecord{
+		ActiveToday: activeToday,
+		Date:        time.Now().In(est),
+		Note:        note,
+	}, nil
 }
 
+// HasUserCheckedIn...
+// Determines if user has checked in today
 func HasUserCheckedIn(userId uuid.UUID) bool {
 	conn := database.GetConnection()
 
@@ -93,4 +116,65 @@ func HasUserCheckedIn(userId uuid.UUID) bool {
 	_ = stmt.QueryRow(userId, currentTime).Scan(&count)
 
 	return count > 0
+}
+
+// TODO: Index the date field in fitness_tracker_history and define it in db.sql
+
+// TotalCheckinRecords...
+// Returns total number of check in records for a given user id
+func TotalCheckinRecords(userId uuid.UUID) int {
+	conn := database.GetConnection()
+
+	defer database.CloseConnection(conn)
+
+	query := "SELECT COUNT(*) as count FROM fitness_tracker_history WHERE user_id = $1"
+
+	stmt := database.PrepareStatement(conn, query)
+
+	var count int
+
+	_ = stmt.QueryRow(userId).Scan(&count)
+
+	return count
+}
+
+// TotalPages...
+// Returns total number of pages a user's fitness history has
+func TotalPagesAndRecords(userId uuid.UUID) (int, int) {
+	totalRecords := TotalCheckinRecords(userId)
+
+	remainder := totalRecords % 10
+
+	if remainder > 0 {
+		return totalRecords, (totalRecords / 10) + 1
+	}
+
+	return totalRecords, (totalRecords / 10)
+}
+
+func RecentCheckinHistory(userId uuid.UUID) []models.FitnessHistoryRecord {
+
+	conn := database.GetConnection()
+
+	defer database.CloseConnection(conn)
+
+	query := "Select date, active_today, note from fitness_tracker_history WHERE user_id = $1 ORDER BY date desc LIMIT 5"
+
+	stmt := database.PrepareStatement(conn, query)
+
+	rows, queryErr := stmt.Query(userId)
+
+	if queryErr != nil {
+		panic(queryErr)
+	}
+
+	recentHistory := make([]models.FitnessHistoryRecord, 0)
+
+	for rows.Next() {
+		var record models.FitnessHistoryRecord
+		rows.Scan(&record.Date, &record.ActiveToday, &record.Note)
+		recentHistory = append(recentHistory, record)
+	}
+
+	return recentHistory
 }
