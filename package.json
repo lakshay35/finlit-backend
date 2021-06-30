@@ -9,10 +9,5 @@
     "@commitlint/cli": "^12.1.4",
     "@commitlint/config-conventional": "^12.1.4",
     "husky": "^6.0.0"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "commitlint && swag init && go mod tidy && golangci-lint run && go test && git add ."
-    }
   }
 }
