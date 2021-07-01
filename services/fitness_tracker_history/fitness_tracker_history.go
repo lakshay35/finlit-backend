@@ -178,3 +178,38 @@ func RecentCheckinHistory(userId uuid.UUID) []models.FitnessHistoryRecord {
 
 	return recentHistory
 }
+
+// GetUserFitnessRate
+func GetUserFitnessRate(userId uuid.UUID) float64 {
+	conn := database.GetConnection()
+
+	defer database.CloseConnection(conn)
+
+	query := "Select active_today from fitness_tracker_history WHERE user_id = $1"
+
+	stmt := database.PrepareStatement(conn, query)
+
+	rows, queryErr := stmt.Query(userId)
+
+	if queryErr != nil {
+		panic(queryErr)
+	}
+
+	activeCount := 0.0
+	total := 0.0
+
+	for rows.Next() {
+		var active_today bool
+
+		rows.Scan(&active_today)
+
+		if active_today {
+			activeCount++
+		}
+
+		total++
+
+	}
+
+	return activeCount / total
+}

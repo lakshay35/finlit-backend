@@ -1250,6 +1250,40 @@ var doc = `{
                 }
             }
         },
+        "/fitness-tracker/fitness-rate": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Averages check-ins and gets fitness rate for user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fitness Tracker"
+                ],
+                "summary": "Gets fitness rate for user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/fitness-tracker/history": {
             "get": {
                 "security": [

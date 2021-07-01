@@ -1102,6 +1102,27 @@ paths:
       summary: Check in status retrieval
       tags:
       - Fitness Tracker
+  /fitness-tracker/fitness-rate:
+    get:
+      consumes:
+      - application/json
+      description: Averages check-ins and gets fitness rate for user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: number
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Gets fitness rate for user
+      tags:
+      - Fitness Tracker
   /fitness-tracker/history:
     get:
       consumes:
