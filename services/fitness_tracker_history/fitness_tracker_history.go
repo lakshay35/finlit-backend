@@ -23,7 +23,7 @@ func GetUserFitnessHistory(userId uuid.UUID, pageIndex int) (*models.FitnessHist
 
 	defer database.CloseConnection(conn)
 
-	query := "Select active_today, date, note from fitness_tracker_history WHERE user_id = $1 LIMIT 10 OFFSET $2"
+	query := "Select active_today, date, note from fitness_tracker_history WHERE user_id = $1 ORDER BY date desc LIMIT 10 OFFSET $2"
 
 	stmt := database.PrepareStatement(conn, query)
 
