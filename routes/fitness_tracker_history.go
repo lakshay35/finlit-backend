@@ -133,7 +133,7 @@ func CheckInStatus(c *gin.Context) {
 // @Accept  json
 // @Produce  json
 // @Security Google AccessToken
-// @Success 200 {number} number
+// @Success 200 {object} models.FitnessCheckinHistory
 // @Failure 403 {object} models.Error
 // @Router /fitness-tracker/fitness-rate [get]
 func GetFitnessRate(c *gin.Context) {

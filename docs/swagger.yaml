@@ -156,6 +156,15 @@ definitions:
       note:
         type: string
     type: object
+  models.FitnessCheckinHistory:
+    properties:
+      active_count:
+        type: integer
+      inactive_count:
+        type: integer
+      total_checkins:
+        type: integer
+    type: object
   models.FitnessHistoryRecord:
     properties:
       active_today:
@@ -1113,7 +1122,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: number
+            $ref: '#/definitions/models.FitnessCheckinHistory'
         "403":
           description: Forbidden
           schema:

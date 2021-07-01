@@ -180,7 +180,7 @@ func RecentCheckinHistory(userId uuid.UUID) []models.FitnessHistoryRecord {
 }
 
 // GetUserFitnessRate
-func GetUserFitnessRate(userId uuid.UUID) float64 {
+func GetUserFitnessRate(userId uuid.UUID) models.FitnessCheckinHistory {
 	conn := database.GetConnection()
 
 	defer database.CloseConnection(conn)
@@ -195,8 +195,8 @@ func GetUserFitnessRate(userId uuid.UUID) float64 {
 		panic(queryErr)
 	}
 
-	activeCount := 0.0
-	total := 0.0
+	activeCount := 0
+	inactiveCount := 0
 
 	for rows.Next() {
 		var active_today bool
@@ -205,11 +205,15 @@ func GetUserFitnessRate(userId uuid.UUID) float64 {
 
 		if active_today {
 			activeCount++
+		} else {
+			inactiveCount++
 		}
-
-		total++
 
 	}
 
-	return activeCount / total
+	return models.FitnessCheckinHistory{
+		ActiveCount:   activeCount,
+		InactiveCount: inactiveCount,
+		TotalCheckins: activeCount + inactiveCount,
+	}
 }

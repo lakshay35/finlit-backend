@@ -1272,7 +1272,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "number"
+                            "$ref": "#/definitions/models.FitnessCheckinHistory"
                         }
                     },
                     "403": {
@@ -1786,6 +1786,20 @@ var doc = `{
                 },
                 "note": {
                     "type": "string"
+                }
+            }
+        },
+        "models.FitnessCheckinHistory": {
+            "type": "object",
+            "properties": {
+                "active_count": {
+                    "type": "integer"
+                },
+                "inactive_count": {
+                    "type": "integer"
+                },
+                "total_checkins": {
+                    "type": "integer"
                 }
             }
         },
