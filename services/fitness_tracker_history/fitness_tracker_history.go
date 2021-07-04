@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jinzhu/now"
 	"github.com/lakshay35/finlit-backend/models"
 	"github.com/lakshay35/finlit-backend/utils/database"
 )
@@ -51,6 +52,98 @@ func GetUserFitnessHistory(userId uuid.UUID, pageIndex int) (*models.FitnessHist
 		Records:      result,
 		PageIndex:    pageIndex,
 		TotalPages:   totalPages,
+	}, nil
+}
+
+// GetUserCalendarFitnessHistory...
+// Retrieves user fitness history
+func GetUserCalendarFitnessHistory(userId uuid.UUID, monthIndex int) (*models.FitnessHistory, *models.Error) {
+
+	if monthIndex > 12 || monthIndex < 1 {
+		return nil, &models.Error{
+			Error:  true,
+			Reason: "Month index is out of bounds",
+		}
+	}
+	conn := database.GetConnection()
+
+	defer database.CloseConnection(conn)
+
+	query := "Select active_today, date, note from fitness_tracker_history WHERE user_id = $1 AND date >= $2 AND date <= $3 order by date"
+
+	stmt := database.PrepareStatement(conn, query)
+
+	est, estErr := time.LoadLocation("EST")
+
+	if estErr != nil {
+		panic(estErr)
+	}
+
+	currentTime := time.Now().In(est)
+
+	date := time.Date(currentTime.Year(), time.Month(monthIndex), 1, 23, 0, 0, 0, est)
+	startDate := now.With(date).BeginningOfMonth()
+	endDate := now.With(date).EndOfMonth()
+	today := time.Now().In(est)
+
+	rows, queryError := stmt.Query(userId, startDate.Format("01-02-2006"), endDate.Format("01-02-2006"))
+
+	if queryError != nil {
+		panic(queryError)
+	}
+
+	cache := make(map[string]models.FitnessHistoryRecord)
+
+	// Populates map with existing records
+	for rows.Next() {
+		var record models.FitnessHistoryRecord
+		scanErr := rows.Scan(&record.ActiveToday, &record.Date, &record.Note)
+
+		if scanErr != nil {
+			panic(scanErr)
+		}
+
+		cache[record.Date.Format("01-02-2006")] = record
+	}
+
+	result := make([]models.FitnessHistoryRecord, 0)
+	currDate := startDate
+
+	// Iterate over days of the month to provide record for each day
+	for currDate.Month() == endDate.Month() && currDate.Day() <= endDate.Day() {
+
+		if record, ok := cache[currDate.Format("01-02-2006")]; ok {
+			result = append(result, record)
+		} else {
+			if currDate.Month() > today.Month() {
+				result = append(result, models.FitnessHistoryRecord{
+					Date:        currDate,
+					ActiveToday: false,
+					Note:        "Date in Future",
+					FutureDate:  true,
+				})
+			} else if currDate.Month() == today.Month() && currDate.Day() > today.Day() {
+				result = append(result, models.FitnessHistoryRecord{
+					Date:        currDate,
+					ActiveToday: false,
+					Note:        "Date in Future",
+					FutureDate:  true,
+				})
+			} else {
+				result = append(result, models.FitnessHistoryRecord{
+					Date:        currDate,
+					ActiveToday: false,
+					Note:        "No Check-in Recorded",
+				})
+			}
+		}
+
+		currDate = currDate.AddDate(0, 0, 1)
+	}
+
+	return &models.FitnessHistory{
+		Month:   monthIndex,
+		Records: result,
 	}, nil
 }
 

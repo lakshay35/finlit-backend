@@ -165,12 +165,29 @@ definitions:
       total_checkins:
         type: integer
     type: object
+  models.FitnessHistory:
+    properties:
+      month:
+        type: integer
+      page_index:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/models.FitnessHistoryRecord'
+        type: array
+      total_pages:
+        type: integer
+      total_records:
+        type: integer
+    type: object
   models.FitnessHistoryRecord:
     properties:
       active_today:
         type: boolean
       date:
         type: string
+      future_date:
+        type: boolean
       note:
         type: string
     type: object
@@ -1141,7 +1158,10 @@ paths:
       - description: Page number of record
         in: query
         name: page
-        required: true
+        type: number
+      - description: month
+        in: query
+        name: month
         type: number
       produces:
       - application/json
@@ -1149,9 +1169,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FitnessHistoryRecord'
-            type: array
+            $ref: '#/definitions/models.FitnessHistory'
         "403":
           description: Forbidden
           schema:

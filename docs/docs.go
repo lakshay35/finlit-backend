@@ -1307,18 +1307,20 @@ var doc = `{
                         "type": "number",
                         "description": "Page number of record",
                         "name": "page",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "month",
+                        "name": "month",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FitnessHistoryRecord"
-                            }
+                            "$ref": "#/definitions/models.FitnessHistory"
                         }
                     },
                     "403": {
@@ -1803,6 +1805,29 @@ var doc = `{
                 }
             }
         },
+        "models.FitnessHistory": {
+            "type": "object",
+            "properties": {
+                "month": {
+                    "type": "integer"
+                },
+                "page_index": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.FitnessHistoryRecord"
+                    }
+                },
+                "total_pages": {
+                    "type": "integer"
+                },
+                "total_records": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.FitnessHistoryRecord": {
             "type": "object",
             "properties": {
@@ -1811,6 +1836,9 @@ var doc = `{
                 },
                 "date": {
                     "type": "string"
+                },
+                "future_date": {
+                    "type": "boolean"
                 },
                 "note": {
                     "type": "string"

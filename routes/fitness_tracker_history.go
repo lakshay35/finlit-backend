@@ -18,19 +18,21 @@ import (
 // @Tags Fitness Tracker
 // @Accept  json
 // @Produce  json
-// @Param page query number true "Page number of record"
+// @Param page query number false "Page number of record"
+// @Param month query number false "month"
 // @Security Google AccessToken
-// @Success 200 {object} []models.FitnessHistoryRecord
+// @Success 200 {object} models.FitnessHistory
 // @Failure 403 {object} models.Error
 // @Router /fitness-tracker/history [get]
 func GetUserFitnessHistory(c *gin.Context) {
 	page := c.Query("page")
+	month := c.Query("month")
 
-	if strings.EqualFold("", page) {
+	if strings.EqualFold("", page) && strings.EqualFold("", month) {
 		requests.ThrowError(
 			c,
 			http.StatusBadRequest,
-			"Page number needs to be passed. Note, indexing starts from 0.",
+			"Page number or month number needs to be passed. Note, indexing for page starts from 0 and 1 for month.",
 		)
 
 		return
@@ -42,14 +44,37 @@ func GetUserFitnessHistory(c *gin.Context) {
 		panic(getUserErr)
 	}
 
-	pageIndex, pageIndexParseErr := strconv.Atoi(page)
+	if !strings.EqualFold("", page) {
+		pageIndex, pageIndexParseErr := strconv.Atoi(page)
 
-	if pageIndexParseErr != nil {
-		logging.ErrorLogger.Print("Unable to convert " + page + " to an integer using `strconv.Atoi`")
-		panic(pageIndexParseErr)
+		if pageIndexParseErr != nil {
+			logging.ErrorLogger.Print("Unable to convert " + page + " to an integer using `strconv.Atoi`")
+			panic(pageIndexParseErr)
+		}
+
+		history, historyErr := fitness_tracker_history.GetUserFitnessHistory(user.UserID, pageIndex)
+
+		if historyErr != nil {
+			requests.ThrowError(
+				c,
+				http.StatusBadRequest,
+				historyErr.Reason,
+			)
+
+			return
+		}
+
+		c.JSON(http.StatusOK, history)
 	}
 
-	history, historyErr := fitness_tracker_history.GetUserFitnessHistory(user.UserID, pageIndex)
+	monthIndex, monthIndexParseErr := strconv.Atoi(month)
+
+	if monthIndexParseErr != nil {
+		logging.ErrorLogger.Print("Unable to convert " + month + " to an integer using `strconv.Atoi`")
+		panic(monthIndexParseErr)
+	}
+
+	history, historyErr := fitness_tracker_history.GetUserCalendarFitnessHistory(user.UserID, monthIndex)
 
 	if historyErr != nil {
 		requests.ThrowError(
@@ -62,6 +87,7 @@ func GetUserFitnessHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, history)
+
 }
 
 // CheckIn ...
