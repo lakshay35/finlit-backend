@@ -1786,6 +1786,9 @@ var doc = `{
                 "active_today": {
                     "type": "boolean"
                 },
+                "date": {
+                    "type": "string"
+                },
                 "note": {
                     "type": "string"
                 }
@@ -1838,6 +1841,9 @@ var doc = `{
                     "type": "string"
                 },
                 "future_date": {
+                    "type": "boolean"
+                },
+                "no_checkin": {
                     "type": "boolean"
                 },
                 "note": {

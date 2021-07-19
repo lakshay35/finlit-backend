@@ -1,6 +1,7 @@
 package fitness_tracker_history
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -134,6 +135,7 @@ func GetUserCalendarFitnessHistory(userId uuid.UUID, monthIndex int) (*models.Fi
 					Date:        currDate,
 					ActiveToday: false,
 					Note:        "No Check-in Recorded",
+					NoCheckin:   true,
 				})
 			}
 		}
@@ -149,13 +151,22 @@ func GetUserCalendarFitnessHistory(userId uuid.UUID, monthIndex int) (*models.Fi
 
 // CheckIn...
 // Records user fitness checkin
-func CheckIn(userId uuid.UUID, activeToday bool, note string) (*models.FitnessHistoryRecord, *models.Error) {
-	if HasUserCheckedIn(userId) {
+func CheckIn(userId uuid.UUID, activeToday bool, note string, date *time.Time) (*models.FitnessHistoryRecord, *models.Error) {
+	fmt.Println(date)
+	if date != nil {
+		if HasUserCheckedIn(userId, date) {
+			return nil, &models.Error{
+				Error:  true,
+				Reason: "You have already checked in for " + date.Format("01-02-2006"),
+			}
+		}
+	} else if HasUserCheckedIn(userId, nil) {
 		return nil, &models.Error{
 			Error:  true,
 			Reason: "You have already checked in for today",
 		}
 	}
+
 	conn := database.GetConnection()
 
 	defer database.CloseConnection(conn)
@@ -170,7 +181,13 @@ func CheckIn(userId uuid.UUID, activeToday bool, note string) (*models.FitnessHi
 		panic(estErr)
 	}
 
-	currentTime := time.Now().In(est).Format("01-02-2006")
+	selectedDate := time.Now().In(est)
+
+	if date != nil {
+		selectedDate = *date
+	}
+
+	currentTime := selectedDate.Format("01-02-2006")
 
 	_, execError := stmt.Exec(activeToday, note, userId, currentTime)
 
@@ -180,14 +197,14 @@ func CheckIn(userId uuid.UUID, activeToday bool, note string) (*models.FitnessHi
 
 	return &models.FitnessHistoryRecord{
 		ActiveToday: activeToday,
-		Date:        time.Now().In(est),
+		Date:        selectedDate,
 		Note:        note,
 	}, nil
 }
 
 // HasUserCheckedIn...
 // Determines if user has checked in today
-func HasUserCheckedIn(userId uuid.UUID) bool {
+func HasUserCheckedIn(userId uuid.UUID, date *time.Time) bool {
 	conn := database.GetConnection()
 
 	defer database.CloseConnection(conn)
@@ -198,15 +215,19 @@ func HasUserCheckedIn(userId uuid.UUID) bool {
 
 	var count int
 
-	est, estErr := time.LoadLocation("EST")
+	if date != nil {
+		_ = stmt.QueryRow(userId, date.Format("01-02-2006")).Scan(&count)
+	} else {
+		est, estErr := time.LoadLocation("EST")
 
-	if estErr != nil {
-		panic(estErr)
+		if estErr != nil {
+			panic(estErr)
+		}
+
+		currentTime := time.Now().In(est).Format("01-02-2006")
+		fmt.Println("checking if user has che3cked in", currentTime)
+		_ = stmt.QueryRow(userId, currentTime).Scan(&count)
 	}
-
-	currentTime := time.Now().In(est).Format("01-02-2006")
-
-	_ = stmt.QueryRow(userId, currentTime).Scan(&count)
 
 	return count > 0
 }

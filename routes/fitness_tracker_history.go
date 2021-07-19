@@ -115,7 +115,13 @@ func CheckIn(c *gin.Context) {
 		panic(getUserErr)
 	}
 
-	record, checkInError := fitness_tracker_history.CheckIn(user.UserID, payload.ActiveToday, payload.Note)
+	var record *models.FitnessHistoryRecord
+	var checkInError *models.Error
+	if !strings.EqualFold("0001-01-01 00:00:00 +0000 UTC", strings.Trim(payload.Date.String(), " ")) {
+		record, checkInError = fitness_tracker_history.CheckIn(user.UserID, payload.ActiveToday, payload.Note, &payload.Date)
+	} else {
+		record, checkInError = fitness_tracker_history.CheckIn(user.UserID, payload.ActiveToday, payload.Note, nil)
+	}
 
 	if checkInError != nil {
 		requests.ThrowError(
@@ -147,7 +153,7 @@ func CheckInStatus(c *gin.Context) {
 		panic(getUserErr)
 	}
 
-	hasUserCheckedIn := fitness_tracker_history.HasUserCheckedIn(user.UserID)
+	hasUserCheckedIn := fitness_tracker_history.HasUserCheckedIn(user.UserID, nil)
 
 	c.JSON(http.StatusOK, hasUserCheckedIn)
 }

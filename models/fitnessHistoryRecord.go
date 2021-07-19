@@ -9,4 +9,5 @@ type FitnessHistoryRecord struct {
 	ActiveToday bool      `json:"active_today"`
 	Note        string    `json:"note"`
 	FutureDate  bool      `json:"future_date,omitempty"`
+	NoCheckin   bool      `json:"no_checkin,omitempty"`
 }

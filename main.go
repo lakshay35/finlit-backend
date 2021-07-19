@@ -119,7 +119,6 @@ func main() {
 			fitnessTracker.GET("/check-in-status", routes.CheckInStatus)
 			fitnessTracker.GET("/fitness-rate", routes.GetFitnessRate)
 		}
-
 	}
 
 	// TODO:
