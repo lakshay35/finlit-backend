@@ -118,6 +118,7 @@ func main() {
 			fitnessTracker.POST("/check-in", routes.CheckIn)
 			fitnessTracker.GET("/check-in-status", routes.CheckInStatus)
 			fitnessTracker.GET("/fitness-rate", routes.GetFitnessRate)
+			fitnessTracker.GET("/weekly-fitness-rate", routes.GetWeeklyFitnessRate)
 		}
 	}
 

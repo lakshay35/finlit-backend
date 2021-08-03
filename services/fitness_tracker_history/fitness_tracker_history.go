@@ -331,3 +331,42 @@ func GetUserFitnessRate(userId uuid.UUID) models.FitnessCheckinHistory {
 		TotalCheckins: activeCount + inactiveCount,
 	}
 }
+
+// GetUserWeeklyFitnessRate
+func GetUserWeeklyFitnessRate(userId uuid.UUID) models.FitnessCheckinHistory {
+	conn := database.GetConnection()
+
+	defer database.CloseConnection(conn)
+
+	query := "Select active_today from fitness_tracker_history WHERE user_id = $1 LIMIT 7"
+
+	stmt := database.PrepareStatement(conn, query)
+
+	rows, queryErr := stmt.Query(userId)
+
+	if queryErr != nil {
+		panic(queryErr)
+	}
+
+	activeCount := 0
+	inactiveCount := 0
+
+	for rows.Next() {
+		var active_today bool
+
+		rows.Scan(&active_today)
+
+		if active_today {
+			activeCount++
+		} else {
+			inactiveCount++
+		}
+
+	}
+
+	return models.FitnessCheckinHistory{
+		ActiveCount:   activeCount,
+		InactiveCount: inactiveCount,
+		TotalCheckins: activeCount + inactiveCount,
+	}
+}

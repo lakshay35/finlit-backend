@@ -180,6 +180,28 @@ func GetFitnessRate(c *gin.Context) {
 	c.JSON(http.StatusOK, userFitnessRate)
 }
 
+// GetWeeklyFitnessRate ...
+// @Summary Gets weekly fitness rate for user
+// @Description Averages check-ins and gets fitness rate for user over the past week
+// @Tags Fitness Tracker
+// @Accept  json
+// @Produce  json
+// @Security Google AccessToken
+// @Success 200 {object} models.FitnessCheckinHistory
+// @Failure 403 {object} models.Error
+// @Router /fitness-tracker/weekly-fitness-rate [get]
+func GetWeeklyFitnessRate(c *gin.Context) {
+	user, getUserErr := requests.GetUserFromContext(c)
+
+	if getUserErr != nil {
+		panic(getUserErr)
+	}
+
+	userFitnessRate := fitness_tracker_history.GetUserWeeklyFitnessRate(user.UserID)
+
+	c.JSON(http.StatusOK, userFitnessRate)
+}
+
 // GetRecentUserFitnessHistory ...
 // @Summary Gets user's most recent checkin history
 // @Description Retrieves user's most recent 5 checkins

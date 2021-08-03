@@ -154,6 +154,7 @@ definitions:
       active_today:
         type: boolean
       date:
+        example: ""
         type: string
       note:
         type: string
@@ -1204,6 +1205,28 @@ paths:
       security:
       - Google AccessToken: []
       summary: Gets user's most recent checkin history
+      tags:
+      - Fitness Tracker
+  /fitness-tracker/weekly-fitness-rate:
+    get:
+      consumes:
+      - application/json
+      description: Averages check-ins and gets fitness rate for user over the past
+        week
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.FitnessCheckinHistory'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.Error'
+      security:
+      - Google AccessToken: []
+      summary: Gets weekly fitness rate for user
       tags:
       - Fitness Tracker
   /role/add-user-role-to-budget:

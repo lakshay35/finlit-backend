@@ -1369,6 +1369,40 @@ var doc = `{
                 }
             }
         },
+        "/fitness-tracker/weekly-fitness-rate": {
+            "get": {
+                "security": [
+                    {
+                        "Google AccessToken": []
+                    }
+                ],
+                "description": "Averages check-ins and gets fitness rate for user over the past week",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fitness Tracker"
+                ],
+                "summary": "Gets weekly fitness rate for user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.FitnessCheckinHistory"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/models.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/role/add-user-role-to-budget": {
             "post": {
                 "security": [
@@ -1787,7 +1821,8 @@ var doc = `{
                     "type": "boolean"
                 },
                 "date": {
-                    "type": "string"
+                    "type": "string",
+                    "example": ""
                 },
                 "note": {
                     "type": "string"
