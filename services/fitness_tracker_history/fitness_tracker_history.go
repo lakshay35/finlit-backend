@@ -338,7 +338,7 @@ func GetUserWeeklyFitnessRate(userId uuid.UUID) models.FitnessCheckinHistory {
 
 	defer database.CloseConnection(conn)
 
-	query := "Select active_today from fitness_tracker_history WHERE user_id = $1 LIMIT 7"
+	query := "Select active_today from fitness_tracker_history WHERE user_id = $1 ORDER BY date desc LIMIT 7"
 
 	stmt := database.PrepareStatement(conn, query)
 
